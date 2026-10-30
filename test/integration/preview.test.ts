@@ -74,11 +74,13 @@ describe('the preview', () => {
 		});
 	}
 
-	it('shows the HTML of the document with the code highlighted and the formulas typeset', async () => {
+	it('shows the HTML of the document with the code highlighted, the formulas typeset and the diagrams', async () => {
 		const editor = await showDocument('content.md', 'any');
 		renderer = async () => ({
 			version: editor.document.version,
-			html: '<p>A formula: $x^2$</p><pre><code class="language-java">class A {}</code></pre>',
+			html:
+				'<p>A formula: $x^2$</p><pre><code class="language-java">class A {}</code></pre>' +
+				'<figure><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"></svg></figure>',
 		});
 
 		const rendering = nextRendering(editor.document.uri);
@@ -88,6 +90,7 @@ describe('the preview', () => {
 		assert.equal(rendered.version, editor.document.version);
 		assert.equal(rendered.math, 1);
 		assert.equal(rendered.code, 1);
+		assert.equal(rendered.figures, 1);
 		assert.deepEqual(
 			previewTabs().map((tab) => tab.group.viewColumn),
 			[vscode.ViewColumn.Two],
