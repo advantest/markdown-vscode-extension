@@ -1,4 +1,5 @@
-// Bundles the extension and everything it imports into dist/extension.js.
+// Bundles the extension and everything it imports into dist/extension.js, and copies what the
+// preview page loads into dist/media.
 //
 //   node esbuild.mjs               a build for development, with source maps
 //   node esbuild.mjs --production  a minified build, as it is packaged
@@ -6,10 +7,25 @@
 //
 // Types are not checked here; "npm run check" does that.
 
+import { cpSync, rmSync } from 'node:fs';
 import * as esbuild from 'esbuild';
 
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
+
+// The preview loads everything from the extension, nothing from a CDN.
+function copyMedia() {
+	rmSync('dist/media', { recursive: true, force: true });
+	cpSync('media', 'dist/media', { recursive: true });
+	const highlight = 'node_modules/@highlightjs/cdn-assets';
+	cpSync(`${highlight}/highlight.min.js`, 'dist/media/highlight/highlight.min.js');
+	cpSync(`${highlight}/styles/default.min.css`, 'dist/media/highlight/default.min.css');
+	cpSync(`${highlight}/LICENSE`, 'dist/media/highlight/LICENSE');
+	cpSync('node_modules/mathjax/es5', 'dist/media/mathjax/es5', { recursive: true });
+	cpSync('node_modules/mathjax/LICENSE', 'dist/media/mathjax/LICENSE');
+}
+
+copyMedia();
 
 const context = await esbuild.context({
 	entryPoints: ['src/extension.ts'],
