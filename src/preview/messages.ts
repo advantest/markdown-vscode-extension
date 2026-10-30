@@ -7,7 +7,13 @@ export interface UpdateMessage {
 	readonly html: string;
 }
 
-export type ToPage = UpdateMessage;
+/** Scroll to an anchor; an empty one stands for the top. */
+export interface ScrollToMessage {
+	readonly type: 'scrollTo';
+	readonly anchor: string;
+}
+
+export type ToPage = UpdateMessage | ScrollToMessage;
 
 /** The page is loaded and waits for its content. */
 export interface ReadyMessage {
@@ -26,4 +32,17 @@ export interface RenderedMessage {
 	readonly images: readonly string[];
 }
 
-export type FromPage = ReadyMessage | RenderedMessage;
+/** A link was clicked; the target as written in the HTML. */
+export interface OpenLinkMessage {
+	readonly type: 'openLink';
+	readonly href: string;
+}
+
+/** The page scrolled to an anchor, or did not find it. */
+export interface RevealedMessage {
+	readonly type: 'revealed';
+	readonly anchor: string;
+	readonly found: boolean;
+}
+
+export type FromPage = ReadyMessage | RenderedMessage | OpenLinkMessage | RevealedMessage;

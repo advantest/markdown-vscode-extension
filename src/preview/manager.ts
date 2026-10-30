@@ -1,12 +1,16 @@
 import { posix } from 'node:path';
 import * as vscode from 'vscode';
-import type { FromPage, ToPage } from './messages';
+import { SECTION } from '../settings';
+import { resolveLink } from './links';
+import type { FromPage, ScrollToMessage, ToPage } from './messages';
 import { previewPage } from './page';
 
 /** The view type of the preview's webview panels. */
 export const VIEW_TYPE = 'markdownSupport.preview';
 /** How long the preview waits after a change before it asks for the new HTML; a save updates it at once. */
 export const UPDATE_DELAY_MS = 300;
+/** The command of VS Code's integrated browser; older versions of VS Code have none. */
+const INTEGRATED_BROWSER = 'workbench.action.browser.open';
 
 /** The HTML the server rendered from a version of the document. */
 export interface RenderResult {
@@ -26,14 +30,32 @@ export interface Rendered {
 	readonly images: readonly string[];
 }
 
+/** A preview scrolled to an anchor, or did not find it. */
+export interface Revealed {
+	readonly uri: vscode.Uri;
+	readonly anchor: string;
+	readonly found: boolean;
+}
+
 export interface Log {
 	error(message: string): void;
 }
+
+/** What the preview needs of VS Code's environment, to open addresses outside VS Code. */
+export interface Environment {
+	openExternal(uri: vscode.Uri): Thenable<boolean>;
+}
+
+type RevealMessage = ScrollToMessage;
 
 /** The preview of one Markdown document in a webview panel. */
 class Preview {
 	private shown: RenderResult | undefined;
 	private pageReady = false;
+	/** Whether the page shows the content of the current document. */
+	private rendered = false;
+	/** What to scroll to once the page shows the content of the current document. */
+	private reveals: RevealMessage[] = [];
 	private timer: NodeJS.Timeout | undefined;
 	private disposed = false;
 
@@ -60,14 +82,34 @@ class Preview {
 			],
 		};
 		this.panel.title = `Preview ${posix.basename(this.uri.path)}`;
-		this.pageReady = false;
+		this.rendered = false;
 		this.shown = undefined;
-		webview.html = previewPage({
+		const html = previewPage({
 			cspSource: webview.cspSource,
 			media: webview.asWebviewUri(this.manager.media).toString(),
 			base: folder ? `${webview.asWebviewUri(folder).toString()}/` : undefined,
 		});
+		// VS Code keeps a page whose HTML did not change, e.g. for another document in the same folder.
+		if (html !== webview.html) {
+			this.pageReady = false;
+			webview.html = html;
+		}
 		this.update(0);
+	}
+
+	/** Shows another document in this preview. */
+	retarget(uri: vscode.Uri): void {
+		this.uri = uri;
+		this.load();
+	}
+
+	/** Scrolls the page, once it shows the content of the current document. */
+	reveal(message: RevealMessage): void {
+		if (this.rendered) {
+			this.post(message);
+		} else {
+			this.reveals.push(message);
+		}
 	}
 
 	/** Asks for the HTML after the given delay; a later call replaces an earlier one that has not started. */
@@ -110,6 +152,8 @@ class Preview {
 				this.show();
 				break;
 			case 'rendered':
+				this.rendered = true;
+				this.reveals.splice(0).forEach((reveal) => this.post(reveal));
 				this.manager.rendered({
 					uri: this.uri,
 					version: message.version,
@@ -117,6 +161,12 @@ class Preview {
 					code: message.code,
 					images: message.images,
 				});
+				break;
+			case 'openLink':
+				void this.manager.openLink(this.uri, message.href);
+				break;
+			case 'revealed':
+				this.manager.revealed({ uri: this.uri, anchor: message.anchor, found: message.found });
 				break;
 		}
 	}
@@ -133,15 +183,19 @@ export class PreviewManager implements vscode.Disposable {
 	readonly media: vscode.Uri;
 	private readonly previews = new Set<Preview>();
 	private readonly renderedEmitter = new vscode.EventEmitter<Rendered>();
-	private readonly disposables: vscode.Disposable[] = [this.renderedEmitter];
+	private readonly revealedEmitter = new vscode.EventEmitter<Revealed>();
+	private readonly disposables: vscode.Disposable[] = [this.renderedEmitter, this.revealedEmitter];
 
 	/** Fires when a preview shows a new content, after highlight.js and MathJax ran. */
 	readonly onDidRender = this.renderedEmitter.event;
+	/** Fires when a preview scrolled to an anchor, or did not find it. */
+	readonly onDidReveal = this.revealedEmitter.event;
 
 	constructor(
 		extensionUri: vscode.Uri,
 		readonly renderer: Renderer,
 		readonly log: Log,
+		private readonly environment: Environment = vscode.env,
 	) {
 		this.media = vscode.Uri.joinPath(extensionUri, 'dist', 'media');
 		this.disposables.push(
@@ -183,6 +237,64 @@ export class PreviewManager implements vscode.Disposable {
 		this.openPreview();
 	}
 
+	/**
+	 * Follows a link in the preview of a document, as FluentMark does: an anchor scrolls the preview, a Markdown file
+	 * opens in the editor and the preview, another file in its default editor, a web address in a browser.
+	 */
+	async openLink(documentUri: vscode.Uri, href: string): Promise<void> {
+		const preview = this.previewsOf(documentUri)[0];
+		const link = resolveLink(href, documentUri.toString());
+		try {
+			switch (link.kind) {
+				case 'anchor':
+					preview?.reveal({ type: 'scrollTo', anchor: link.anchor });
+					break;
+				case 'markdown':
+					await this.openMarkdown(documentUri, vscode.Uri.parse(link.uri), link.anchor);
+					break;
+				case 'file':
+					await vscode.commands.executeCommand('vscode.open', vscode.Uri.parse(link.uri));
+					break;
+				case 'web':
+					await this.openWeb(link.uri);
+					break;
+				case 'external':
+					await this.environment.openExternal(vscode.Uri.parse(link.uri));
+					break;
+			}
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			this.log.error(`The link ${href} could not be opened: ${message}`);
+		}
+	}
+
+	private async openMarkdown(from: vscode.Uri, target: vscode.Uri, anchor: string): Promise<void> {
+		const source = vscode.window.visibleTextEditors.find((editor) => same(editor.document.uri, from));
+		const document = await vscode.workspace.openTextDocument(target);
+		await vscode.window.showTextDocument(document, {
+			viewColumn: source?.viewColumn ?? vscode.ViewColumn.Beside,
+			preserveFocus: true,
+		});
+		const preview = this.previewsOf(target)[0] ?? this.previewsOf(from)[0];
+		if (preview === undefined) {
+			return;
+		}
+		if (!same(preview.uri, target)) {
+			preview.retarget(target);
+		}
+		preview.panel.reveal(undefined, true);
+		preview.reveal({ type: 'scrollTo', anchor });
+	}
+
+	private async openWeb(address: string): Promise<void> {
+		const target = vscode.workspace.getConfiguration(SECTION).get<string>('preview.openWebLinksIn');
+		if (target !== 'systemBrowser' && (await vscode.commands.getCommands(true)).includes(INTEGRATED_BROWSER)) {
+			await vscode.commands.executeCommand(INTEGRATED_BROWSER, address);
+		} else {
+			await this.environment.openExternal(vscode.Uri.parse(address));
+		}
+	}
+
 	/** Asks for the HTML of every preview again, e.g. after the server started. */
 	refreshAll(): void {
 		this.previews.forEach((preview) => preview.update(0));
@@ -206,12 +318,17 @@ export class PreviewManager implements vscode.Disposable {
 	}
 
 	private previewsOf(uri: vscode.Uri): Preview[] {
-		return [...this.previews].filter((preview) => preview.uri.toString() === uri.toString());
+		return [...this.previews].filter((preview) => same(preview.uri, uri));
 	}
 
 	/** @internal */
 	rendered(rendered: Rendered): void {
 		this.renderedEmitter.fire(rendered);
+	}
+
+	/** @internal */
+	revealed(revealed: Revealed): void {
+		this.revealedEmitter.fire(revealed);
 	}
 
 	/** @internal */
@@ -223,6 +340,10 @@ export class PreviewManager implements vscode.Disposable {
 		[...this.previews].forEach((preview) => preview.panel.dispose());
 		this.disposables.forEach((disposable) => disposable.dispose());
 	}
+}
+
+function same(a: vscode.Uri, b: vscode.Uri): boolean {
+	return a.toString() === b.toString();
 }
 
 function activeMarkdownDocument(): vscode.Uri | undefined {

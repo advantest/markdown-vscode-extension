@@ -61,6 +61,25 @@ async function refresh(version: number): Promise<void> {
 	});
 }
 
+function scrollTo(anchor: string): void {
+	const target = anchor === '' ? app : (document.getElementById(anchor) ?? document.getElementsByName(anchor)[0]);
+	if (anchor === '') {
+		window.scrollTo(0, 0);
+	} else {
+		target?.scrollIntoView();
+	}
+	vscode.postMessage({ type: 'revealed', anchor, found: target !== undefined && target !== null });
+}
+
+// The extension opens the links, as the webview cannot navigate.
+app.addEventListener('click', (event) => {
+	const link = (event.target as Element).closest('a[href]');
+	if (link) {
+		event.preventDefault();
+		vscode.postMessage({ type: 'openLink', href: link.getAttribute('href') ?? '' });
+	}
+});
+
 window.addEventListener('message', (event: MessageEvent<ToPage>) => {
 	const message = event.data;
 	switch (message.type) {
@@ -68,6 +87,9 @@ window.addEventListener('message', (event: MessageEvent<ToPage>) => {
 			shownVersion = message.version;
 			app.innerHTML = message.html;
 			void refresh(message.version);
+			break;
+		case 'scrollTo':
+			scrollTo(message.anchor);
 			break;
 	}
 });

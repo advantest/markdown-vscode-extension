@@ -102,6 +102,20 @@
           "scope": "machine",
           "markdownDescription": "Options for the Java VM running the language server, one per item, e.g. `-Xmx1g`."
         },
+        "markdownSupport.preview.openWebLinksIn": {
+          "type": "string",
+          "enum": [
+            "integratedBrowser",
+            "systemBrowser"
+          ],
+          "enumDescriptions": [
+            "VS Code's integrated browser; the system browser where VS Code has none.",
+            "The browser of the operating system."
+          ],
+          "default": "integratedBrowser",
+          "scope": "window",
+          "description": "Where a web address that is clicked in the preview opens."
+        },
         "markdownSupport.trace.server": {
           "type": "string",
           "enum": [
