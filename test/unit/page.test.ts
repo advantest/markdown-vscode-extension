@@ -91,6 +91,17 @@ describe('the preview page', () => {
 		);
 	});
 
+	it('loads the script that connects rendered elements and their source before the one that zooms', () => {
+		assert.deepEqual(attributes(page(), 'script', 'src').slice(-3, -1), [`${MEDIA}/source.js`, `${MEDIA}/zoom.js`]);
+	});
+
+	it('has the hint on jumping to the source of FluentMark', () => {
+		assert.match(
+			page(),
+			/<div id="jump-to-source-hint">\s*<div>Jump to source with <em>Ctrl \+ mouse click<\/em>\.<\/div>\s*<\/div>/,
+		);
+	});
+
 	it('has no inline script', () => {
 		assert.doesNotMatch(page(), /<script(?![^>]*\ssrc=)[^>]*>/);
 	});
