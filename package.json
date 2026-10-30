@@ -21,6 +21,12 @@
     "onLanguage:markdown"
   ],
   "main": "./dist/extension.js",
+  "scripts": {
+    "check": "tsc --noEmit",
+    "compile": "npm run check && node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "vscode:prepublish": "npm run check && node esbuild.mjs --production"
+  },
   "devDependencies": {
     "@types/node": "^20.19.43",
     "@types/vscode": "1.91.0",
