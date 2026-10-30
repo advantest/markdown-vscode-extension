@@ -1,0 +1,24 @@
+{
+  "name": "markdown-support",
+  "displayName": "Markdown Support",
+  "description": "Validation of Markdown documents, provided by the language server markdown-ls.",
+  "version": "0.0.1",
+  "publisher": "advantest",
+  "private": true,
+  "engines": {
+    "vscode": "^1.91.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Linters"
+  ],
+  "keywords": [
+    "markdown",
+    "language server",
+    "validation"
+  ],
+  "activationEvents": [
+    "onLanguage:markdown"
+  ],
+  "main": "./dist/extension.js"
+}
