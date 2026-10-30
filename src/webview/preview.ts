@@ -31,6 +31,8 @@ declare global {
 }
 
 const vscode = acquireVsCodeApi();
+// VS Code puts its own default styles, which follow its theme, into every webview; the preview looks like FluentMark's.
+document.getElementById('_defaultStyles')?.remove();
 const app = document.getElementById('app') as HTMLElement;
 const hint = document.getElementById('jump-to-source-hint') as HTMLElement;
 let shownVersion: number | undefined;
