@@ -26,6 +26,11 @@
     "lint": "eslint",
     "compile": "npm run check && node esbuild.mjs",
     "watch": "node esbuild.mjs --watch",
+    "compile-tests": "tsc",
+    "pretest": "npm run compile && npm run compile-tests && npm run lint",
+    "test": "npm run test:unit && npm run test:integration",
+    "test:unit": "mocha",
+    "test:integration": "vscode-test",
     "vscode:prepublish": "npm run check && node esbuild.mjs --production"
   },
   "devDependencies": {
