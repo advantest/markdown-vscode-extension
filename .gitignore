@@ -1,0 +1,18 @@
+# Dependencies, installed by npm from package-lock.json
+node_modules/
+
+# Compiled and bundled output
+out/
+dist/
+
+# Packaged extensions
+*.vsix
+
+# VS Code instances and downloads of the extension tests
+.vscode-test/
+
+# Test coverage
+coverage/
+
+# Logs
+*.log
