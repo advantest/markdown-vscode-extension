@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { LanguageClient, type LanguageClientOptions, type ServerOptions } from 'vscode-languageclient/node';
 import { nodeJavaEnvironment } from './java';
-import { PreviewManager, type RenderResult } from './preview/manager';
+import { PreviewManager, type Rendered, type RenderResult } from './preview/manager';
 import { LaunchError, prepareLaunch } from './server';
 import { readSettings, SECTION } from './settings';
 
@@ -18,7 +18,13 @@ let previews: PreviewManager | undefined;
 /** Starts and stops run one after the other, so that a restart never overtakes the start before it. */
 let pending: Promise<void> = Promise.resolve();
 
-export function activate(context: vscode.ExtensionContext): void {
+/** What the extension offers other extensions, and its end-to-end tests. */
+export interface MarkdownSupportApi {
+	/** Fires when a preview shows a new content, after highlight.js and MathJax ran. */
+	readonly onDidRenderPreview: vscode.Event<Rendered>;
+}
+
+export function activate(context: vscode.ExtensionContext): MarkdownSupportApi {
 	output = vscode.window.createOutputChannel(NAME, { log: true });
 	const log = output;
 	previews = new PreviewManager(context.extensionUri, renderHtml, { error: (message) => log.error(message) });
@@ -39,6 +45,7 @@ export function activate(context: vscode.ExtensionContext): void {
 		}),
 	);
 	void schedule(start);
+	return { onDidRenderPreview: manager.onDidRender };
 }
 
 export function deactivate(): Promise<void> {
