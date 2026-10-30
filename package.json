@@ -68,8 +68,10 @@
     "compile-tests": "tsc",
     "pretest": "npm run compile && npm run compile-tests && npm run lint",
     "test": "npm run test:unit && npm run test:integration",
-    "test:unit": "mocha",
-    "test:integration": "vscode-test",
+    "posttest": "npm run coverage",
+    "test:unit": "c8 mocha",
+    "test:integration": "vscode-test --coverage --coverage-reporter json --coverage-output coverage/integration",
+    "coverage": "node scripts/coverage.mjs",
     "vscode:prepublish": "npm run check && node esbuild.mjs --production",
     "package": "vsce package --no-dependencies --skip-license --allow-missing-repository"
   },

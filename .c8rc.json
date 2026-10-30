@@ -1,0 +1,9 @@
+{
+	"all": true,
+	"src": ["src"],
+	"include": ["src/**", "out/src/**"],
+	"exclude-after-remap": true,
+	"reporter": ["json"],
+	"reports-dir": "coverage/unit",
+	"temp-directory": "coverage/unit-tmp"
+}
