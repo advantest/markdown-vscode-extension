@@ -29,7 +29,8 @@ The preview shows the HTML the server renders from a Markdown document, with the
 updated shortly after a change and at once when the document is saved. Code is highlighted with
 highlight.js and formulas are typeset with MathJax, both shipped with the extension; nothing is loaded
 from the web except images the document links to. Relative images and links are resolved against the
-folder of the document.
+folder of the document; an image changed on disk shows when the preview is updated. The preview looks
+the same in every colour theme.
 
 | Command                               | Title                    | Description                                     |
 |---------------------------------------|--------------------------|-------------------------------------------------|
