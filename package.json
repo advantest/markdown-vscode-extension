@@ -22,6 +22,62 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "commands": [
+      {
+        "command": "markdownSupport.preview.open",
+        "title": "Open Preview",
+        "category": "Markdown Support",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "markdownSupport.preview.openToSide",
+        "title": "Open Preview to the Side",
+        "category": "Markdown Support",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "markdownSupport.preview.toggle",
+        "title": "Toggle Preview",
+        "category": "Markdown Support",
+        "icon": "$(go-to-file)"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "markdownSupport.preview.open",
+          "when": "editorLangId == markdown"
+        },
+        {
+          "command": "markdownSupport.preview.openToSide",
+          "when": "editorLangId == markdown"
+        },
+        {
+          "command": "markdownSupport.preview.toggle",
+          "when": "editorLangId == markdown || activeWebviewPanelId == 'markdownSupport.preview'"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "markdownSupport.preview.openToSide",
+          "alt": "markdownSupport.preview.open",
+          "when": "editorLangId == markdown",
+          "group": "navigation"
+        },
+        {
+          "command": "markdownSupport.preview.toggle",
+          "when": "activeWebviewPanelId == 'markdownSupport.preview'",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "markdownSupport.preview.open",
+          "when": "resourceLangId == markdown",
+          "group": "navigation"
+        }
+      ]
+    },
     "configuration": {
       "title": "Markdown Support",
       "properties": {
