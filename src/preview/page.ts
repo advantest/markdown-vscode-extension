@@ -45,6 +45,10 @@ ${base === undefined ? '' : `		<base href="${escape(base)}">\n`}		<link rel="sty
 			<div>Use <em>left mouse button</em> to grab and move.</div>
 			<div>Use <em>right mouse button</em> to reset.</div>
 		</div>
+		<div id="jump-to-source-hint">
+			<div>Jump to source with <em>Ctrl + mouse click</em>.</div>
+		</div>
+		<script src="${file('source.js')}"></script>
 		<script src="${file('zoom.js')}"></script>
 		<script src="${file('preview.js')}"></script>
 	</body>

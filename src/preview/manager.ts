@@ -2,7 +2,7 @@ import { posix } from 'node:path';
 import * as vscode from 'vscode';
 import { SECTION } from '../settings';
 import { resolveLink } from './links';
-import type { FromPage, ScrollToMessage, ToPage } from './messages';
+import type { FromPage, ScrollToMessage, ShowElementMessage, ToPage } from './messages';
 import { previewPage } from './page';
 
 /** The view type of the preview's webview panels. */
@@ -37,6 +37,15 @@ export interface Revealed {
 	readonly found: boolean;
 }
 
+/** A preview showed the element rendered from a part of its document, or found none; in UTF-16 code units. */
+export interface ShownElement {
+	readonly uri: vscode.Uri;
+	readonly offset: number;
+	readonly length: number;
+	/** The part of the document the element shown was rendered from. */
+	readonly element: { readonly offset: number; readonly length: number } | undefined;
+}
+
 export interface Log {
 	error(message: string): void;
 }
@@ -46,7 +55,7 @@ export interface Environment {
 	openExternal(uri: vscode.Uri): Thenable<boolean>;
 }
 
-type RevealMessage = ScrollToMessage;
+type RevealMessage = ScrollToMessage | ShowElementMessage;
 
 /** The preview of one Markdown document in a webview panel. */
 class Preview {
@@ -168,6 +177,17 @@ class Preview {
 			case 'revealed':
 				this.manager.revealed({ uri: this.uri, anchor: message.anchor, found: message.found });
 				break;
+			case 'jumpToSource':
+				void this.manager.jumpToSource(this.uri, message.offset, message.length);
+				break;
+			case 'elementShown':
+				this.manager.elementShown({
+					uri: this.uri,
+					offset: message.offset,
+					length: message.length,
+					element: message.element ?? undefined,
+				});
+				break;
 		}
 	}
 
@@ -184,12 +204,15 @@ export class PreviewManager implements vscode.Disposable {
 	private readonly previews = new Set<Preview>();
 	private readonly renderedEmitter = new vscode.EventEmitter<Rendered>();
 	private readonly revealedEmitter = new vscode.EventEmitter<Revealed>();
-	private readonly disposables: vscode.Disposable[] = [this.renderedEmitter, this.revealedEmitter];
+	private readonly shownElementEmitter = new vscode.EventEmitter<ShownElement>();
+	private readonly disposables: vscode.Disposable[] = [this.renderedEmitter, this.revealedEmitter, this.shownElementEmitter];
 
 	/** Fires when a preview shows a new content, after highlight.js and MathJax ran. */
 	readonly onDidRender = this.renderedEmitter.event;
 	/** Fires when a preview scrolled to an anchor, or did not find it. */
 	readonly onDidReveal = this.revealedEmitter.event;
+	/** Fires when a preview showed the element rendered from a part of its document, or found none. */
+	readonly onDidShowElement = this.shownElementEmitter.event;
 
 	constructor(
 		extensionUri: vscode.Uri,
@@ -295,6 +318,42 @@ export class PreviewManager implements vscode.Disposable {
 		}
 	}
 
+	/**
+	 * Selects a part of a document in its editor, given in UTF-16 code units, as VS Code counts them too; the editor
+	 * is opened where none shows the document.
+	 */
+	async jumpToSource(uri: vscode.Uri, offset: number, length: number): Promise<void> {
+		try {
+			const document = await vscode.workspace.openTextDocument(uri);
+			const source = vscode.window.visibleTextEditors.find((editor) => same(editor.document.uri, uri));
+			const selection = new vscode.Selection(document.positionAt(offset), document.positionAt(offset + length));
+			const editor = await vscode.window.showTextDocument(document, {
+				viewColumn: source?.viewColumn ?? vscode.ViewColumn.Beside,
+				selection,
+			});
+			editor.revealRange(selection, vscode.TextEditorRevealType.InCenterIfOutsideViewport);
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			this.log.error(`The source of ${uri.toString()} could not be shown: ${message}`);
+		}
+	}
+
+	/**
+	 * Shows the element rendered from the selection of the active editor in the preview, scrolled into view and
+	 * outlined for a moment; opens the preview beside the editor where there is none.
+	 */
+	showElement(): void {
+		const editor = vscode.window.activeTextEditor;
+		if (editor?.document.languageId !== 'markdown') {
+			return;
+		}
+		const { document, selection } = editor;
+		const offset = document.offsetAt(selection.start);
+		const length = document.offsetAt(selection.end) - offset;
+		const preview = this.show(document.uri, vscode.ViewColumn.Beside, true);
+		preview.reveal({ type: 'showElement', offset, length });
+	}
+
 	/** Asks for the HTML of every preview again, e.g. after the server started. */
 	refreshAll(): void {
 		this.previews.forEach((preview) => preview.update(0));
@@ -329,6 +388,11 @@ export class PreviewManager implements vscode.Disposable {
 	/** @internal */
 	revealed(revealed: Revealed): void {
 		this.revealedEmitter.fire(revealed);
+	}
+
+	/** @internal */
+	elementShown(shown: ShownElement): void {
+		this.shownElementEmitter.fire(shown);
 	}
 
 	/** @internal */

@@ -1,7 +1,7 @@
 /*
  * The script of the preview page. It takes the part of FluentMark's Vue application: it puts the HTML the extension
  * sends into the page, then highlights the code with highlight.js, typesets the formulas with MathJax and lets the
- * images zoom.
+ * images zoom. A Ctrl- or Cmd-click on an element leads to its source.
  */
 import type { FromPage, ToPage } from '../preview/messages';
 
@@ -17,17 +17,22 @@ interface MathJaxApi {
 
 declare function acquireVsCodeApi(): VsCodeApi;
 declare const hljs: { highlightElement(element: Element): void };
-// From zoom.js, which the page loads before this script.
+// From source.js and zoom.js, which the page loads before this script.
+declare function scrollToElement(sourceOffset: number, sourceLength: number): void;
+declare function jumpToSourceOnMouseClick(event: MouseEvent): void;
 declare function reloadLocalImages(): void;
 declare function refreshImages(): void;
 declare global {
 	interface Window {
 		MathJax?: MathJaxApi;
+		/** Called by jumpToSourceOnMouseClick, where FluentMark called into Java. */
+		jumpToSource?: (offset: number, length: number) => void;
 	}
 }
 
 const vscode = acquireVsCodeApi();
 const app = document.getElementById('app') as HTMLElement;
+const hint = document.getElementById('jump-to-source-hint') as HTMLElement;
 let shownVersion: number | undefined;
 
 /** Settles once MathJax is loaded and has typeset the page it found; MathJax is loaded asynchronously. */
@@ -78,6 +83,47 @@ function scrollTo(anchor: string): void {
 	vscode.postMessage({ type: 'revealed', anchor, found: target !== undefined && target !== null });
 }
 
+function showElement(offset: number, length: number): void {
+	for (const element of document.querySelectorAll('.is-highlighted')) {
+		element.classList.remove('is-highlighted');
+	}
+	scrollToElement(offset, length);
+	const element = document.querySelector('.is-highlighted');
+	vscode.postMessage({
+		type: 'elementShown',
+		offset,
+		length,
+		element: element && {
+			offset: Number.parseInt(element.getAttribute('source-offset') ?? '', 10),
+			length: Number.parseInt(element.getAttribute('source-length') ?? '', 10),
+		},
+	});
+}
+
+window.jumpToSource = (offset, length) => vscode.postMessage({ type: 'jumpToSource', offset, length });
+
+// As FluentMark's Vue application did when it was mounted. The click is caught before a link would be followed.
+app.addEventListener('click', jumpToSourceOnMouseClick, true);
+
+app.addEventListener('mouseover', (event) => {
+	if ((event.target as Element).closest('[source-offset]')) {
+		hint.style.opacity = '1';
+	}
+});
+
+app.addEventListener('mousemove', (event) => {
+	if (hint.style.opacity === '1') {
+		hint.style.left = `${event.clientX + 10}px`;
+		hint.style.top = `${event.clientY + 2}px`;
+	}
+});
+
+app.addEventListener('mouseout', (event) => {
+	if ((event.target as Element).closest('[source-offset]')) {
+		hint.style.opacity = '0';
+	}
+});
+
 // The extension opens the links, as the webview cannot navigate.
 app.addEventListener('click', (event) => {
 	const link = (event.target as Element).closest('a[href]');
@@ -97,6 +143,9 @@ window.addEventListener('message', (event: MessageEvent<ToPage>) => {
 			break;
 		case 'scrollTo':
 			scrollTo(message.anchor);
+			break;
+		case 'showElement':
+			showElement(message.offset, message.length);
 			break;
 	}
 });

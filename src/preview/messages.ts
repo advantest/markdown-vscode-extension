@@ -13,7 +13,14 @@ export interface ScrollToMessage {
 	readonly anchor: string;
 }
 
-export type ToPage = UpdateMessage | ScrollToMessage;
+/** Show the element rendered from a part of the source, given in UTF-16 code units, as FluentMark's scrollToElement. */
+export interface ShowElementMessage {
+	readonly type: 'showElement';
+	readonly offset: number;
+	readonly length: number;
+}
+
+export type ToPage = UpdateMessage | ScrollToMessage | ShowElementMessage;
 
 /** The page is loaded and waits for its content. */
 export interface ReadyMessage {
@@ -45,4 +52,26 @@ export interface RevealedMessage {
 	readonly found: boolean;
 }
 
-export type FromPage = ReadyMessage | RenderedMessage | OpenLinkMessage | RevealedMessage;
+/** An element was Ctrl- or Cmd-clicked; the part of the source it was rendered from, in UTF-16 code units. */
+export interface JumpToSourceMessage {
+	readonly type: 'jumpToSource';
+	readonly offset: number;
+	readonly length: number;
+}
+
+/** The page showed the element rendered from a part of the source, or found none. */
+export interface ElementShownMessage {
+	readonly type: 'elementShown';
+	readonly offset: number;
+	readonly length: number;
+	/** The part of the source the element shown was rendered from. */
+	readonly element: { readonly offset: number; readonly length: number } | null;
+}
+
+export type FromPage =
+	| ReadyMessage
+	| RenderedMessage
+	| OpenLinkMessage
+	| RevealedMessage
+	| JumpToSourceMessage
+	| ElementShownMessage;
