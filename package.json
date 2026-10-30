@@ -20,5 +20,11 @@
   "activationEvents": [
     "onLanguage:markdown"
   ],
-  "main": "./dist/extension.js"
+  "main": "./dist/extension.js",
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "@types/vscode": "1.91.0",
+    "esbuild": "^0.28.2",
+    "typescript": "~6.0.3"
+  }
 }
