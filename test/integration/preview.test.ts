@@ -1,5 +1,5 @@
 import * as assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
@@ -112,6 +112,67 @@ describe('the preview', () => {
 			path.basename(path.dirname(path.dirname(image.path))).toLowerCase(),
 			path.basename(directory).toLowerCase(),
 		);
+	});
+
+	it("looks like FluentMark's preview under a dark theme, without VS Code's default styles", async () => {
+		const workbench = vscode.workspace.getConfiguration('workbench');
+		const theme = workbench.inspect<string>('colorTheme')?.globalValue;
+		await workbench.update('colorTheme', 'Default Dark Modern', vscode.ConfigurationTarget.Global);
+		try {
+			assert.equal(vscode.window.activeColorTheme.kind, vscode.ColorThemeKind.Dark, 'a dark theme is active');
+			const editor = await showDocument('dark.md', 'any');
+			renderer = async () => ({
+				version: editor.document.version,
+				html:
+					'<p><a href="#here">A link</a> and <code>code</code></p><blockquote><p>A quote</p></blockquote>' +
+					`<p><img src="${PIXEL}"></p>`,
+			});
+
+			const rendering = nextRendering(editor.document.uri);
+			manager.openPreviewToSide(editor.document.uri);
+			const { style } = await rendering;
+
+			assert.equal(style.vscodeDefaults, false, "VS Code's default styles are removed");
+			assert.equal(style.body.color, 'rgb(0, 0, 0)');
+			assert.equal(style.body.backgroundColor, 'rgb(255, 255, 255)');
+			assert.equal(style.body.padding, '30px');
+			assert.match(style.body.fontFamily, /^-apple-system,/);
+			assert.equal(style.link?.color, 'rgb(65, 131, 196)');
+			assert.equal(style.code?.color, 'rgb(0, 0, 0)');
+			assert.equal(style.code?.backgroundColor, 'rgb(248, 248, 248)');
+			assert.equal(style.blockquote?.color, 'rgb(119, 119, 119)');
+			assert.equal(style.blockquote?.backgroundColor, 'rgba(0, 0, 0, 0)');
+			assert.equal(style.image?.maxWidth, '100%');
+			assert.equal(style.image?.maxHeight, 'none');
+		} finally {
+			await workbench.update('colorTheme', theme, vscode.ConfigurationTarget.Global);
+		}
+	});
+
+	it('shows a local image changed on disk when the document is rendered again', async () => {
+		const image = path.join(directory, 'changing pictures', 'changing.svg');
+		await mkdir(path.dirname(image));
+		await writeFile(image, square(10));
+		const editor = await showDocument('changing-image.md', '![](<changing pictures/changing.svg>)\n');
+		renderer = async () => ({
+			version: editor.document.version,
+			html: '<p><img src="changing%20pictures/changing.svg"></p>',
+		});
+
+		let rendering = nextRendering(editor.document.uri);
+		manager.openPreviewToSide(editor.document.uri);
+		assert.deepEqual((await rendering).imageWidths, [10]);
+
+		await writeFile(image, square(20));
+		rendering = nextRendering(editor.document.uri, (rendered) => rendered.version === editor.document.version);
+		await editor.edit((edit) => edit.insert(new vscode.Position(1, 0), '\n'));
+		const changed = await rendering;
+		assert.deepEqual(changed.imageWidths, [20], 'the changed image is shown');
+		assert.equal(path.basename(vscode.Uri.parse(changed.images[0]).path), 'changing.svg');
+
+		rendering = nextRendering(editor.document.uri, (rendered) => rendered.version === editor.document.version);
+		await editor.document.save();
+		assert.deepEqual((await rendering).imageWidths, [20], 'the image stays');
 	});
 
 	it('opens in place of the editor, and closing either leaves the other open', async () => {
@@ -229,6 +290,14 @@ describe('the preview', () => {
 		assert.equal(previewTabs()[0].group.viewColumn, vscode.ViewColumn.Two);
 	});
 });
+
+/** A transparent GIF of one pixel. */
+const PIXEL = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+
+/** An SVG image of a square of the given width. */
+function square(width: number): string {
+	return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${width}"><rect width="${width}" height="${width}" fill="red"/></svg>`;
+}
 
 function previewTabs(): vscode.Tab[] {
 	return vscode.window.tabGroups.all
