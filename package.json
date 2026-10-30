@@ -70,7 +70,8 @@
     "test": "npm run test:unit && npm run test:integration",
     "test:unit": "mocha",
     "test:integration": "vscode-test",
-    "vscode:prepublish": "npm run check && node esbuild.mjs --production"
+    "vscode:prepublish": "npm run check && node esbuild.mjs --production",
+    "package": "vsce package --no-dependencies --skip-license --allow-missing-repository"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
