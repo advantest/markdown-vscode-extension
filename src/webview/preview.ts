@@ -69,6 +69,7 @@ async function refresh(version: number): Promise<void> {
 		version,
 		math: app.querySelectorAll('mjx-container').length,
 		code: app.querySelectorAll('pre code.hljs').length,
+		figures: app.querySelectorAll('figure > svg').length,
 		images: Array.from(app.querySelectorAll('img'), (image) => image.src),
 	});
 }

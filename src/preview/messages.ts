@@ -35,6 +35,8 @@ export interface RenderedMessage {
 	readonly math: number;
 	/** The number of highlighted code blocks. */
 	readonly code: number;
+	/** The number of figures drawn as SVG, as the server draws diagrams. */
+	readonly figures: number;
 	/** The resolved addresses of the images. */
 	readonly images: readonly string[];
 }

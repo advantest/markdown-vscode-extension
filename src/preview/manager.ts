@@ -27,6 +27,7 @@ export interface Rendered {
 	readonly version: number;
 	readonly math: number;
 	readonly code: number;
+	readonly figures: number;
 	readonly images: readonly string[];
 }
 
@@ -168,6 +169,7 @@ class Preview {
 					version: message.version,
 					math: message.math,
 					code: message.code,
+					figures: message.figures,
 					images: message.images,
 				});
 				break;
