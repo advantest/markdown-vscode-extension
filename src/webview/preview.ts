@@ -3,7 +3,7 @@
  * sends into the page, then highlights the code with highlight.js, typesets the formulas with MathJax and lets the
  * images zoom. A Ctrl- or Cmd-click on an element leads to its source.
  */
-import type { FromPage, ToPage } from '../preview/messages';
+import type { ElementStyle, FromPage, PageStyle, ToPage } from '../preview/messages';
 
 interface VsCodeApi {
 	postMessage(message: FromPage): void;
@@ -60,7 +60,8 @@ async function refresh(version: number): Promise<void> {
 	// FluentMark's updateImages: makes the new images zoomable.
 	reloadLocalImages();
 	refreshImages();
-	await mathJaxReady;
+	const images = Array.from(app.querySelectorAll('img'));
+	await Promise.all([mathJaxReady, ...images.map(loaded)]);
 	if (version !== shownVersion) {
 		return;
 	}
@@ -70,8 +71,46 @@ async function refresh(version: number): Promise<void> {
 		math: app.querySelectorAll('mjx-container').length,
 		code: app.querySelectorAll('pre code.hljs').length,
 		figures: app.querySelectorAll('figure > svg').length,
-		images: Array.from(app.querySelectorAll('img'), (image) => image.src),
+		images: images.map((image) => image.src),
+		imageWidths: images.map((image) => image.naturalWidth),
+		style: pageStyle(),
 	});
+}
+
+/** Settles once the image is loaded or failed to load. */
+function loaded(image: HTMLImageElement): Promise<void> {
+	return image.complete
+		? Promise.resolve()
+		: new Promise((resolve) => {
+				image.addEventListener('load', () => resolve(), { once: true });
+				image.addEventListener('error', () => resolve(), { once: true });
+			});
+}
+
+function elementStyle(element: Element | null): ElementStyle | null {
+	if (!element) {
+		return null;
+	}
+	const style = getComputedStyle(element);
+	return {
+		color: style.color,
+		backgroundColor: style.backgroundColor,
+		fontFamily: style.fontFamily,
+		padding: style.padding,
+		maxWidth: style.maxWidth,
+		maxHeight: style.maxHeight,
+	};
+}
+
+function pageStyle(): PageStyle {
+	return {
+		vscodeDefaults: document.getElementById('_defaultStyles') !== null,
+		body: elementStyle(document.body) as ElementStyle,
+		link: elementStyle(app.querySelector('a')),
+		code: elementStyle(app.querySelector(':not(pre) > code')),
+		blockquote: elementStyle(app.querySelector('blockquote')),
+		image: elementStyle(app.querySelector('img')),
+	};
 }
 
 function scrollTo(anchor: string): void {

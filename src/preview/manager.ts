@@ -2,7 +2,7 @@ import { posix } from 'node:path';
 import * as vscode from 'vscode';
 import { SECTION } from '../settings';
 import { resolveLink } from './links';
-import type { FromPage, ScrollToMessage, ShowElementMessage, ToPage } from './messages';
+import type { FromPage, PageStyle, ScrollToMessage, ShowElementMessage, ToPage } from './messages';
 import { previewPage } from './page';
 
 /** The view type of the preview's webview panels. */
@@ -29,6 +29,8 @@ export interface Rendered {
 	readonly code: number;
 	readonly figures: number;
 	readonly images: readonly string[];
+	readonly imageWidths: readonly number[];
+	readonly style: PageStyle;
 }
 
 /** A preview scrolled to an anchor, or did not find it. */
@@ -171,6 +173,8 @@ class Preview {
 					code: message.code,
 					figures: message.figures,
 					images: message.images,
+					imageWidths: message.imageWidths,
+					style: message.style,
 				});
 				break;
 			case 'openLink':

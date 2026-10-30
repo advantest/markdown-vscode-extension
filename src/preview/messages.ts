@@ -39,6 +39,32 @@ export interface RenderedMessage {
 	readonly figures: number;
 	/** The resolved addresses of the images. */
 	readonly images: readonly string[];
+	/** The natural widths of the images, once they are loaded; 0 for one that failed. */
+	readonly imageWidths: readonly number[];
+	/** How the page looks. */
+	readonly style: PageStyle;
+}
+
+/** A part of the computed style of an element. */
+export interface ElementStyle {
+	readonly color: string;
+	readonly backgroundColor: string;
+	readonly fontFamily: string;
+	readonly padding: string;
+	readonly maxWidth: string;
+	readonly maxHeight: string;
+}
+
+/** How the page looks: the computed styles of the body and of the first element of some kinds. */
+export interface PageStyle {
+	/** Whether the page has the default styles VS Code puts into every webview. */
+	readonly vscodeDefaults: boolean;
+	readonly body: ElementStyle;
+	readonly link: ElementStyle | null;
+	/** Code outside of a code block. */
+	readonly code: ElementStyle | null;
+	readonly blockquote: ElementStyle | null;
+	readonly image: ElementStyle | null;
 }
 
 /** A link was clicked; the target as written in the HTML. */
