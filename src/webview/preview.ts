@@ -50,7 +50,21 @@ const mathJaxReady: Promise<unknown> = new Promise<void>((resolve) => {
 	.then(() => window.MathJax?.startup?.promise)
 	.catch((error: unknown) => console.error(error));
 
-async function refresh(version: number): Promise<void> {
+/** Adds the stamps to the images changed on disk; returns the addresses of all images as they were. */
+function stampImages(stamps: ReadonlyMap<string, string>): string[] {
+	return Array.from(app.querySelectorAll('img'), (image) => {
+		const source = image.src;
+		const stamp = stamps.get(source);
+		if (stamp !== undefined) {
+			const address = new URL(source);
+			address.searchParams.set('mtime', stamp);
+			image.src = address.href;
+		}
+		return source;
+	});
+}
+
+async function refresh(version: number, sources: readonly string[]): Promise<void> {
 	for (const block of app.querySelectorAll('pre code')) {
 		hljs.highlightElement(block);
 	}
@@ -73,7 +87,7 @@ async function refresh(version: number): Promise<void> {
 		math: app.querySelectorAll('mjx-container').length,
 		code: app.querySelectorAll('pre code.hljs').length,
 		figures: app.querySelectorAll('figure > svg').length,
-		images: images.map((image) => image.src),
+		images: sources,
 		imageWidths: images.map((image) => image.naturalWidth),
 		style: pageStyle(),
 	});
@@ -181,7 +195,7 @@ window.addEventListener('message', (event: MessageEvent<ToPage>) => {
 		case 'update':
 			shownVersion = message.version;
 			app.innerHTML = message.html;
-			void refresh(message.version);
+			void refresh(message.version, stampImages(new Map(message.imageStamps)));
 			break;
 		case 'scrollTo':
 			scrollTo(message.anchor);

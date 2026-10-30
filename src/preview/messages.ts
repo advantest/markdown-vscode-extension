@@ -5,6 +5,11 @@ export interface UpdateMessage {
 	readonly type: 'update';
 	readonly version: number;
 	readonly html: string;
+	/**
+	 * The local images changed on disk since the page first loaded them: their resolved addresses and a stamp the page
+	 * adds to them, so that it loads them again rather than showing what it has kept.
+	 */
+	readonly imageStamps: readonly (readonly [string, string])[];
 }
 
 /** Scroll to an anchor; an empty one stands for the top. */
@@ -37,7 +42,7 @@ export interface RenderedMessage {
 	readonly code: number;
 	/** The number of figures drawn as SVG, as the server draws diagrams. */
 	readonly figures: number;
-	/** The resolved addresses of the images. */
+	/** The resolved addresses of the images, without the stamps added to them. */
 	readonly images: readonly string[];
 	/** The natural widths of the images, once they are loaded; 0 for one that failed. */
 	readonly imageWidths: readonly number[];

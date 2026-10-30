@@ -70,6 +70,10 @@ class Preview {
 	private reveals: RevealMessage[] = [];
 	private timer: NodeJS.Timeout | undefined;
 	private disposed = false;
+	/** The folders the page may load from. */
+	private roots: vscode.Uri[] = [];
+	/** The local images of the page, by their webview address, and when they were modified as it first loaded them. */
+	private readonly images = new Map<string, { readonly file: vscode.Uri; readonly modified: number }>();
 
 	constructor(
 		private readonly manager: PreviewManager,
@@ -85,14 +89,12 @@ class Preview {
 	private load(): void {
 		const webview = this.panel.webview;
 		const folder = this.uri.scheme === 'file' ? vscode.Uri.joinPath(this.uri, '..') : undefined;
-		webview.options = {
-			enableScripts: true,
-			localResourceRoots: [
-				this.manager.media,
-				...(folder ? [folder] : []),
-				...(vscode.workspace.workspaceFolders ?? []).map((workspaceFolder) => workspaceFolder.uri),
-			],
-		};
+		this.roots = [
+			this.manager.media,
+			...(folder ? [folder] : []),
+			...(vscode.workspace.workspaceFolders ?? []).map((workspaceFolder) => workspaceFolder.uri),
+		];
+		webview.options = { enableScripts: true, localResourceRoots: this.roots };
 		this.panel.title = `Preview ${posix.basename(this.uri.path)}`;
 		this.rendered = false;
 		this.shown = undefined;
@@ -104,6 +106,7 @@ class Preview {
 		// VS Code keeps a page whose HTML did not change, e.g. for another document in the same folder.
 		if (html !== webview.html) {
 			this.pageReady = false;
+			this.images.clear();
 			webview.html = html;
 		}
 		this.update(0);
@@ -148,9 +151,61 @@ class Preview {
 	}
 
 	private show(): void {
-		if (this.pageReady && this.shown) {
-			this.post({ type: 'update', version: this.shown.version, html: this.shown.html });
+		const shown = this.shown;
+		if (!this.pageReady || !shown) {
+			return;
 		}
+		void this.imageStamps().then((imageStamps) => {
+			if (this.pageReady && this.shown === shown && !this.disposed) {
+				this.post({ type: 'update', version: shown.version, html: shown.html, imageStamps });
+			}
+		});
+	}
+
+	/**
+	 * The stamps of the local images changed on disk since the page first loaded them. The page keeps an image it has
+	 * loaded and shows it again for the same address, so FluentMark's reloadLocalImages, which leaves out web
+	 * addresses as the webview's are, would not show the change.
+	 */
+	private async imageStamps(): Promise<[string, string][]> {
+		const stamps = await Promise.all(
+			Array.from(this.images, async ([address, { file, modified }]): Promise<[string, string] | undefined> => {
+				const now = await modifiedAt(file);
+				return now === modified ? undefined : [address, String(now)];
+			}),
+		);
+		return stamps.filter((stamp) => stamp !== undefined);
+	}
+
+	/** Notes when the local images the page loaded for the first time were modified. */
+	private async noteImages(addresses: readonly string[]): Promise<void> {
+		for (const address of addresses) {
+			const file = this.images.has(address) ? undefined : this.resourceOf(address);
+			if (file) {
+				const modified = await modifiedAt(file);
+				if (!this.images.has(address)) {
+					this.images.set(address, { file, modified });
+				}
+			}
+		}
+	}
+
+	/** The file a webview address stands for, where it is in one of the folders the page may load from. */
+	private resourceOf(address: string): vscode.Uri | undefined {
+		try {
+			// The page writes the addresses as a browser does, e.g. "file+" where VS Code writes "file%2B".
+			const normalised = new URL(address).href;
+			for (const root of this.roots) {
+				const prefix = new URL(`${this.panel.webview.asWebviewUri(root).toString()}/`).href;
+				if (normalised.startsWith(prefix)) {
+					const path = normalised.slice(prefix.length).replace(/[?#].*$/s, '');
+					return vscode.Uri.joinPath(root, ...path.split('/').map(decodeURIComponent));
+				}
+			}
+		} catch {
+			// An address that is no URL or a path that cannot be decoded stands for no file.
+		}
+		return undefined;
 	}
 
 	post(message: ToPage): void {
@@ -165,6 +220,7 @@ class Preview {
 				break;
 			case 'rendered':
 				this.rendered = true;
+				void this.noteImages(message.images);
 				this.reveals.splice(0).forEach((reveal) => this.post(reveal));
 				this.manager.rendered({
 					uri: this.uri,
@@ -419,4 +475,13 @@ function same(a: vscode.Uri, b: vscode.Uri): boolean {
 function activeMarkdownDocument(): vscode.Uri | undefined {
 	const document = vscode.window.activeTextEditor?.document;
 	return document?.languageId === 'markdown' ? document.uri : undefined;
+}
+
+/** When a file was last modified, or -1 where it cannot be read. */
+async function modifiedAt(file: vscode.Uri): Promise<number> {
+	try {
+		return (await vscode.workspace.fs.stat(file)).mtime;
+	} catch {
+		return -1;
+	}
 }
