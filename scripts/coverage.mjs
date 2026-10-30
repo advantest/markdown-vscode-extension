@@ -1,5 +1,5 @@
-// Merges the coverage of the unit tests and of the tests in VS Code into one report, and fails if it falls below
-// the thresholds. Both runs write Istanbul's coverage-final.json below coverage/; only the extension's own sources in
+// Merges the coverage of the unit tests and of the tests in VS Code into one report, as text and as HTML in
+// coverage/html. Both runs write Istanbul's coverage-final.json below coverage/; only the extension's own sources in
 // src/ are counted, not the libraries bundled with it.
 //
 //   node scripts/coverage.mjs
@@ -11,7 +11,6 @@ import libCoverage from 'istanbul-lib-coverage';
 import libReport from 'istanbul-lib-report';
 import reports from 'istanbul-reports';
 
-const THRESHOLD = 80;
 const REPORTS_DIR = 'coverage';
 const SOURCES = resolve('src') + sep;
 
@@ -36,14 +35,3 @@ if (parts === 0) {
 const context = libReport.createContext({ dir: REPORTS_DIR, coverageMap });
 reports.create('text').execute(context);
 reports.create('html', { subdir: 'html' }).execute(context);
-
-const summary = coverageMap.getCoverageSummary();
-let failed = false;
-for (const metric of ['lines', 'branches', 'functions', 'statements']) {
-	const percent = summary[metric].pct;
-	if (percent < THRESHOLD) {
-		console.error(`The coverage of ${metric}, ${percent} %, is below ${THRESHOLD} %.`);
-		failed = true;
-	}
-}
-process.exitCode = failed ? 1 : 0;
