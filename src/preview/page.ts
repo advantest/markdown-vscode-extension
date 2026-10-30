@@ -40,6 +40,12 @@ ${base === undefined ? '' : `		<base href="${escape(base)}">\n`}		<link rel="sty
 	</head>
 	<body style="overflow:auto">
 		<span id="app"></span>
+		<div id="zoom-hint">
+			<div>Use <em>Alt + mouse wheel</em> to zoom.</div>
+			<div>Use <em>left mouse button</em> to grab and move.</div>
+			<div>Use <em>right mouse button</em> to reset.</div>
+		</div>
+		<script src="${file('zoom.js')}"></script>
 		<script src="${file('preview.js')}"></script>
 	</body>
 </html>

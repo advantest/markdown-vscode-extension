@@ -1,6 +1,7 @@
 /*
  * The script of the preview page. It takes the part of FluentMark's Vue application: it puts the HTML the extension
- * sends into the page, then highlights the code with highlight.js and typesets the formulas with MathJax.
+ * sends into the page, then highlights the code with highlight.js, typesets the formulas with MathJax and lets the
+ * images zoom.
  */
 import type { FromPage, ToPage } from '../preview/messages';
 
@@ -16,6 +17,9 @@ interface MathJaxApi {
 
 declare function acquireVsCodeApi(): VsCodeApi;
 declare const hljs: { highlightElement(element: Element): void };
+// From zoom.js, which the page loads before this script.
+declare function reloadLocalImages(): void;
+declare function refreshImages(): void;
 declare global {
 	interface Window {
 		MathJax?: MathJaxApi;
@@ -48,6 +52,9 @@ async function refresh(version: number): Promise<void> {
 		mathJax.typesetClear();
 		mathJax.typeset();
 	}
+	// FluentMark's updateImages: makes the new images zoomable.
+	reloadLocalImages();
+	refreshImages();
 	await mathJaxReady;
 	if (version !== shownVersion) {
 		return;
