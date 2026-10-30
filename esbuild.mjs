@@ -1,5 +1,5 @@
-// Bundles the extension and everything it imports into dist/extension.js, and copies what the
-// preview page loads into dist/media.
+// Bundles the extension and everything it imports into dist/extension.js and the script of the preview page
+// into dist/media/preview.js, and copies what else the preview page loads into dist/media.
 //
 //   node esbuild.mjs               a build for development, with source maps
 //   node esbuild.mjs --production  a minified build, as it is packaged
@@ -27,7 +27,7 @@ function copyMedia() {
 
 copyMedia();
 
-const context = await esbuild.context({
+const extension = await esbuild.context({
 	entryPoints: ['src/extension.ts'],
 	bundle: true,
 	format: 'cjs',
@@ -41,9 +41,24 @@ const context = await esbuild.context({
 	logLevel: 'info',
 });
 
-if (watch) {
-	await context.watch();
-} else {
-	await context.rebuild();
-	await context.dispose();
+// The script of the preview page runs in the webview, a browser.
+const page = await esbuild.context({
+	entryPoints: ['src/webview/preview.ts'],
+	bundle: true,
+	format: 'iife',
+	platform: 'browser',
+	target: 'es2022',
+	outfile: 'dist/media/preview.js',
+	minify: production,
+	sourcemap: production ? false : 'inline',
+	logLevel: 'info',
+});
+
+for (const context of [extension, page]) {
+	if (watch) {
+		await context.watch();
+	} else {
+		await context.rebuild();
+		await context.dispose();
+	}
 }

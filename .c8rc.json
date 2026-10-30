@@ -2,6 +2,7 @@
 	"all": true,
 	"src": ["src"],
 	"include": ["src/**", "out/src/**"],
+	"exclude": ["src/webview/**"],
 	"exclude-after-remap": true,
 	"reporter": ["json"],
 	"reports-dir": "coverage/unit",

@@ -3,7 +3,7 @@ import { defineConfig } from 'eslint/config';
 import tseslint from 'typescript-eslint';
 
 export default defineConfig(
-	{ ignores: ['dist/', 'out/', 'coverage/', '.vscode-test/'] },
+	{ ignores: ['dist/', 'out/', 'coverage/', '.vscode-test/', 'media/'] },
 	eslint.configs.recommended,
 	tseslint.configs.recommended,
 	{
