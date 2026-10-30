@@ -80,6 +80,17 @@ describe('the preview page', () => {
 		assert.match(html, /<script id="MathJax-script" async src="[^"]*\/mathjax\/es5\/tex-mml-svg\.js"><\/script>/);
 	});
 
+	it('loads the script that zooms and moves images just before its own script', () => {
+		assert.deepEqual(attributes(page(), 'script', 'src').slice(-2), [`${MEDIA}/zoom.js`, `${MEDIA}/preview.js`]);
+	});
+
+	it('has the hint on zooming and moving images of FluentMark', () => {
+		assert.match(
+			page(),
+			/<div id="zoom-hint">\s*<div>Use <em>Alt \+ mouse wheel<\/em> to zoom\.<\/div>\s*<div>Use <em>left mouse button<\/em> to grab and move\.<\/div>\s*<div>Use <em>right mouse button<\/em> to reset\.<\/div>\s*<\/div>/,
+		);
+	});
+
 	it('has no inline script', () => {
 		assert.doesNotMatch(page(), /<script(?![^>]*\ssrc=)[^>]*>/);
 	});
