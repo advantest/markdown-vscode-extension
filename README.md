@@ -17,5 +17,53 @@ brings its results into the editor:
 
 ## Requirements
 
-A Java 21 runtime, to run the server. A setting naming the Java executable takes precedence over
-`JAVA_HOME` and the `PATH`.
+- **Java 21** or newer, to run the server. The Java set in `markdownSupport.java.path` is taken if
+  there is one; otherwise the first Java 21 found in `JAVA_HOME` and then on the `PATH`.
+- **The JAR of `markdown-ls`**, set in `markdownSupport.server.jar`. The extension starts it with
+  `java [VM arguments] -jar <JAR>`; the libraries the JAR needs are found in the directory `lib` next
+  to it, as in the distribution of `markdown-ls`.
+
+## Settings
+
+| Setting                         | Description                                                                       |
+|---------------------------------|-----------------------------------------------------------------------------------|
+| `markdownSupport.java.path`     | The Java executable to run the server with.                                       |
+| `markdownSupport.server.jar`    | The JAR of the language server.                                                   |
+| `markdownSupport.server.vmArgs` | Options for the Java VM, e.g. `-Xmx1g`.                                           |
+| `markdownSupport.trace.server`  | Logs the messages between VS Code and the server: `off`, `messages` or `verbose`. |
+
+The first three are user settings only, since they decide which program is run; changing one of them
+restarts the server. The server's messages are shown in the output channel "Markdown Support".
+
+## Building
+
+Node.js 22 or newer and npm are needed.
+
+```sh
+npm ci              # installs the dependencies as locked in package-lock.json
+npm run compile     # checks the types and bundles the extension into dist/extension.js
+npm run package     # builds the VSIX file to install into VS Code
+```
+
+## Running
+
+Open the repository in VS Code and start the launch configuration "Run Extension". It opens a second
+VS Code window with the extension loaded. The VSIX file can be installed with "Extensions: Install from
+VSIX…".
+
+## Testing
+
+```sh
+npm test
+```
+
+runs the unit tests, the tests inside VS Code (which is downloaded into `.vscode-test/` the first
+time) and reports the coverage of both together; the HTML report is written to `coverage/html`.
+
+The end-to-end tests run the extension against the real server. They are skipped unless two
+environment variables name the server's JAR and a Java 21:
+
+```sh
+MARKDOWN_SUPPORT_TEST_SERVER_JAR=/path/to/markdown-ls/markdown-ls.jar
+MARKDOWN_SUPPORT_TEST_JAVA=/path/to/jdk-21/bin/java
+```
