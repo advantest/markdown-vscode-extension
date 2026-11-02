@@ -1,0 +1,64 @@
+import * as assert from 'node:assert/strict';
+import { reportStartFailure, type ReportTarget } from '../../src/report';
+import { LaunchError } from '../../src/server';
+
+describe('reportStartFailure', () => {
+	it('shows the message of a wrong setting with a button that opens the settings editor at that setting', async () => {
+		const target = fake('Open Settings');
+
+		const message = 'The JAR /x.jar set in markdownSupport.server.jar does not exist.';
+
+		await reportStartFailure(new LaunchError(message, 'markdownSupport.server.jar'), target);
+
+		assert.deepEqual(target.shown, [[message, 'Open Settings']]);
+		assert.deepEqual(target.commands, [['workbench.action.openSettings', '@id:markdownSupport.server.jar']]);
+	});
+
+	it('opens nothing if the message is dismissed', async () => {
+		const target = fake(undefined);
+
+		await reportStartFailure(new LaunchError('wrong', 'markdownSupport.java.home'), target);
+
+		assert.deepEqual(target.commands, []);
+	});
+
+	it('shows another failure without a button', async () => {
+		const target = fake(undefined);
+
+		await reportStartFailure(new Error('Server initialization failed.'), target);
+
+		assert.deepEqual(target.shown, [
+			['The Markdown language server could not be started: Server initialization failed.'],
+		]);
+	});
+
+	it('logs every failure', async () => {
+		const target = fake(undefined);
+
+		await reportStartFailure(new LaunchError('wrong', 'markdownSupport.java.home'), target);
+		await reportStartFailure('broken', target);
+
+		assert.deepEqual(target.logged, ['wrong', 'broken']);
+	});
+});
+
+type FakeTarget = ReportTarget & { shown: string[][]; commands: unknown[][]; logged: string[] };
+
+function fake(choice: string | undefined): FakeTarget {
+	const target = {
+		shown: [] as string[][],
+		commands: [] as unknown[][],
+		logged: [] as string[],
+		log: (message: string) => {
+			target.logged.push(message);
+		},
+		showError: async (message: string, ...actions: string[]) => {
+			target.shown.push([message, ...actions]);
+			return choice;
+		},
+		executeCommand: async (command: string, ...args: unknown[]) => {
+			target.commands.push([command, ...args]);
+		},
+	};
+	return target;
+}

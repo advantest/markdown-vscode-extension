@@ -47,8 +47,7 @@ describe('prepareLaunch', () => {
 		);
 
 		assert.equal(error.setting, 'markdownSupport.server.jar');
-		assert.match(error.message, /\/missing\.jar/);
-		assert.match(error.message, /does not exist/);
+		assert.match(error.message, /The JAR \/missing\.jar set in markdownSupport\.server\.jar does not exist/);
 	});
 
 	it('looks for Java only once the JAR is found', async () => {
