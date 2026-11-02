@@ -225,11 +225,10 @@ class Preview {
 				this.pageReady = true;
 				this.show();
 				break;
-			case 'rendered':
+			case 'rendered': {
 				this.rendered = true;
-				void this.noteImages(message.images);
 				this.reveals.splice(0).forEach((reveal) => this.post(reveal));
-				this.manager.rendered({
+				const rendered: Rendered = {
 					uri: this.uri,
 					version: message.version,
 					math: message.math,
@@ -238,8 +237,11 @@ class Preview {
 					images: message.images,
 					imageWidths: message.imageWidths,
 					style: message.style,
-				});
+				};
+				// Reported once the images are noted, so that an image changed on disk afterwards is noted as changed.
+				void this.noteImages(message.images).then(() => this.manager.rendered(rendered));
 				break;
+			}
 			case 'openLink':
 				void this.manager.openLink(this.uri, message.href);
 				break;
