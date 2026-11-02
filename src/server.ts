@@ -35,7 +35,7 @@ export async function prepareLaunch(settings: Settings, environment: JavaEnviron
 		);
 	}
 	if (!(await environment.isFile(jar))) {
-		throw new LaunchError(`The JAR of the language server, ${jar}, does not exist. Check ${JAR_SETTING}.`, JAR_SETTING);
+		throw new LaunchError(`The JAR ${jar} set in ${JAR_SETTING} does not exist.`, JAR_SETTING);
 	}
 
 	let java;

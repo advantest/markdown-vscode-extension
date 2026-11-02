@@ -2,7 +2,8 @@ import * as vscode from 'vscode';
 import { LanguageClient, type LanguageClientOptions, type ServerOptions } from 'vscode-languageclient/node';
 import { nodeJavaEnvironment } from './java';
 import { PreviewManager, type Rendered, type RenderResult } from './preview/manager';
-import { LaunchError, prepareLaunch } from './server';
+import { reportStartFailure } from './report';
+import { prepareLaunch } from './server';
 import { readSettings, SECTION } from './settings';
 
 const CLIENT_ID = SECTION;
@@ -121,16 +122,9 @@ async function stop(): Promise<void> {
 }
 
 function report(error: unknown): void {
-	const message = error instanceof Error ? error.message : String(error);
-	output?.error(message);
-	if (error instanceof LaunchError) {
-		const openSettings = 'Open Settings';
-		void vscode.window.showErrorMessage(message, openSettings).then((choice) => {
-			if (choice === openSettings) {
-				void vscode.commands.executeCommand('workbench.action.openSettings', error.setting);
-			}
-		});
-	} else {
-		void vscode.window.showErrorMessage(`The Markdown language server could not be started: ${message}`);
-	}
+	void reportStartFailure(error, {
+		log: (message) => output?.error(message),
+		showError: (message, ...actions) => vscode.window.showErrorMessage(message, ...actions),
+		executeCommand: (command, ...args) => vscode.commands.executeCommand(command, ...args),
+	});
 }
