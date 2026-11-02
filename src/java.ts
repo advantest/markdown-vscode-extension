@@ -47,14 +47,14 @@ export function parseJavaVersion(output: string): number | undefined {
 /**
  * Finds a Java 21 or newer to run the server with.
  *
- * A configured executable is the only one considered: if it is missing or too old, that is an error, since the user
- * chose it on purpose. Without one, the Java of `JAVA_HOME` is tried, then every `java` on the `PATH` in order, and
+ * A configured installation folder is the only one considered, by its `bin/java`: if it is missing or too old, that
+ * is an error, since the user chose it on purpose. Without one, the Java of `JAVA_HOME` is tried, then every `java` on the `PATH` in order, and
  * the first that is new enough is taken. Neither of the two can be relied on to name a Java 21, so an older one is
  * passed over rather than reported at once.
  */
-export async function findJava(configuredPath: string | undefined, environment: JavaEnvironment): Promise<Java> {
-	if (configuredPath !== undefined) {
-		return checkConfigured(configuredPath, environment);
+export async function findJava(configuredHome: string | undefined, environment: JavaEnvironment): Promise<Java> {
+	if (configuredHome !== undefined) {
+		return checkConfigured(configuredHome, environment);
 	}
 
 	const found: string[] = [];
@@ -69,7 +69,7 @@ export async function findJava(configuredPath: string | undefined, environment: 
 		found.push(`${executable} (${version === undefined ? 'version unknown' : `Java ${version}`})`);
 	}
 
-	const advice = `Set the path of a Java ${MINIMUM_JAVA_VERSION} or newer in the setting ${SETTING}.`;
+	const advice = `Set the folder of a Java ${MINIMUM_JAVA_VERSION} or newer installation in the setting ${SETTING}.`;
 	if (found.length === 0) {
 		throw new JavaNotFoundError(
 			`No Java was found in JAVA_HOME or on the PATH. The Markdown language server needs Java ${MINIMUM_JAVA_VERSION} or newer. ${advice}`,
@@ -80,11 +80,21 @@ export async function findJava(configuredPath: string | undefined, environment: 
 	);
 }
 
-async function checkConfigured(executable: string, environment: JavaEnvironment): Promise<Java> {
-	const prefix = `The Java executable ${executable} set in ${SETTING}`;
-	if (!(await environment.isFile(executable))) {
-		throw new JavaNotFoundError(`${prefix} does not exist.`);
+async function checkConfigured(home: string, environment: JavaEnvironment): Promise<Java> {
+	const { paths, name } = platformOf(environment);
+	if (await environment.isFile(home)) {
+		const example = /[\\/]bin[\\/]java(?:\.exe)?$/i.test(home) ? `, e.g. ${paths.dirname(paths.dirname(home))}` : '';
+		throw new JavaNotFoundError(
+			`In ${SETTING}, ${home} is a file, not the folder of a Java installation. Set the folder that contains bin${paths.sep}${name}${example}.`,
+		);
 	}
+	const executable = paths.join(home, 'bin', name);
+	if (!(await environment.isFile(executable))) {
+		throw new JavaNotFoundError(
+			`The folder ${home} set in ${SETTING} is no Java installation: ${executable} does not exist.`,
+		);
+	}
+	const prefix = `The Java ${home} set in ${SETTING}`;
 	let version: number | undefined;
 	try {
 		version = await versionOf(executable, environment);
@@ -96,7 +106,7 @@ async function checkConfigured(executable: string, environment: JavaEnvironment)
 	}
 	if (version < MINIMUM_JAVA_VERSION) {
 		throw new JavaNotFoundError(
-			`${executable} is Java ${version}, set in ${SETTING}. The Markdown language server needs Java ${MINIMUM_JAVA_VERSION} or newer.`,
+			`${prefix} is Java ${version}. The Markdown language server needs Java ${MINIMUM_JAVA_VERSION} or newer.`,
 		);
 	}
 	return { executable, version };
@@ -109,8 +119,7 @@ async function versionOf(executable: string, environment: JavaEnvironment): Prom
 /** The executables to try, in order and each once: that of `JAVA_HOME`, then those on the `PATH`. */
 function candidates(environment: JavaEnvironment): string[] {
 	const windows = environment.platform === 'win32';
-	const paths = windows ? path.win32 : path.posix;
-	const name = windows ? 'java.exe' : 'java';
+	const { paths, name } = platformOf(environment);
 
 	const result: string[] = [];
 	const javaHome = variable(environment, 'JAVA_HOME');
@@ -124,6 +133,11 @@ function candidates(environment: JavaEnvironment): string[] {
 		}
 	}
 	return [...new Set(result)];
+}
+
+/** The path functions and the name of the Java executable on the platform. */
+function platformOf(environment: JavaEnvironment): { paths: path.PlatformPath; name: string } {
+	return environment.platform === 'win32' ? { paths: path.win32, name: 'java.exe' } : { paths: path.posix, name: 'java' };
 }
 
 /** Reads an environment variable, on Windows whatever the case of its name, as Windows itself does. */
