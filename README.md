@@ -27,7 +27,8 @@ brings its results into the editor:
 ## Preview
 
 The preview shows the HTML the server renders from a Markdown document, with the unsaved changes. It is
-updated shortly after a change and at once when the document is saved. Code is highlighted with
+updated shortly after a change and at once when the document is saved. It follows the editor: when the
+editor shows another Markdown document, e.g. after the back button, the preview shows that one. Code is highlighted with
 highlight.js and formulas are typeset with MathJax, both shipped with the extension; nothing is loaded
 from the web except images the document links to. Relative images and links are resolved against the
 folder of the document, and an image may be any local file; an image changed on disk shows when the
