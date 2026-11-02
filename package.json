@@ -101,22 +101,28 @@
           "type": "string",
           "default": "",
           "scope": "machine",
-          "markdownDescription": "The folder of the Java installation that runs the language server, a JDK or JRE 21 or newer, e.g. `/usr/lib/jvm/java-21` or `C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.5.11-hotspot`. Its `bin/java` is run. If empty, `JAVA_HOME` and then the `PATH` are searched for a Java."
+          "pattern": "^(?![\\s\\S]*(?:[\\\\/][bB][iI][nN](?:[\\\\/][jJ][aA][vV][aA](?:\\.[eE][xX][eE])?)?[\\\\/]?|\\.[eE][xX][eE])\\s*$)",
+          "patternErrorMessage": "Set the folder of the Java installation, the one that contains bin, not the Java executable or its bin folder.",
+          "markdownDescription": "The folder of the Java installation that runs the language server, a JDK or JRE 21 or newer, i.e. the folder that contains `bin/java`, e.g. `/usr/lib/jvm/java-21` or `C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.5.11-hotspot`. If empty, `JAVA_HOME` and then the `PATH` are searched for a Java."
         },
         "markdownSupport.server.jar": {
           "type": "string",
           "default": "",
           "scope": "machine",
-          "markdownDescription": "The JAR of the language server `markdown-ls`, e.g. `/opt/markdown-ls/markdown-ls.jar`. The server is started with `java -jar`, so its manifest names the main class and the libraries it needs."
+          "pattern": "^\\s*$|\\.[jJ][aA][rR]\\s*$",
+          "patternErrorMessage": "Set the path of a JAR file, ending in .jar, e.g. /opt/markdown-ls/markdown-ls.jar.",
+          "markdownDescription": "The JAR of the language server `markdown-ls`, e.g. `/opt/markdown-ls/markdown-ls.jar`. The server is started with `java -jar`, so its manifest names the main class and the libraries it needs; take the JAR of the unpacked distribution, which has its libraries next to it."
         },
         "markdownSupport.server.vmArgs": {
           "type": "array",
           "items": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^\\s*[-@]",
+            "patternErrorMessage": "A Java VM option starts with \"-\", e.g. -Xmx1g, or names an argument file with \"@\"."
           },
           "default": [],
           "scope": "machine",
-          "markdownDescription": "Options for the Java VM running the language server, one per item, e.g. `-Xmx1g`."
+          "markdownDescription": "Options for the Java VM running the language server, one per item, each starting with `-`, e.g. `-Xmx1g`, or `@` and the path of an argument file."
         },
         "markdownSupport.preview.openWebLinksIn": {
           "type": "string",
