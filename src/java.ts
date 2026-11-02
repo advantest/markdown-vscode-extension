@@ -5,7 +5,7 @@ import * as path from 'node:path';
 /** The oldest Java feature version the language server runs on. */
 export const MINIMUM_JAVA_VERSION = 21;
 
-const SETTING = 'markdownSupport.java.path';
+const SETTING = 'markdownSupport.java.home';
 
 /** What the search for Java needs of the system, so that it can be tested without one. */
 export interface JavaEnvironment {

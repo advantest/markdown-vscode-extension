@@ -20,7 +20,7 @@ export class LaunchError extends Error {
 }
 
 const JAR_SETTING = `${SECTION}.server.jar`;
-const JAVA_SETTING = `${SECTION}.java.path`;
+const JAVA_SETTING = `${SECTION}.java.home`;
 
 /**
  * Prepares `java [VM arguments] -jar <JAR>`. The JAR is checked first, since looking for Java runs executables and
@@ -40,7 +40,7 @@ export async function prepareLaunch(settings: Settings, environment: JavaEnviron
 
 	let java;
 	try {
-		java = await findJava(settings.javaPath, environment);
+		java = await findJava(settings.javaHome, environment);
 	} catch (error) {
 		if (error instanceof JavaNotFoundError) {
 			throw new LaunchError(error.message, JAVA_SETTING);

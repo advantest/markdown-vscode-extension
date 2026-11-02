@@ -55,7 +55,7 @@ describe('findJava', () => {
 
 			const error = await rejection(findJava('/missing/java', environment));
 
-			assert.match(error.message, /markdownSupport\.java\.path/);
+			assert.match(error.message, /markdownSupport\.java\.home/);
 			assert.match(error.message, /\/missing\/java/);
 			assert.match(error.message, /does not exist/);
 		});
@@ -151,14 +151,14 @@ describe('findJava', () => {
 			assert.match(error.message, /\/jdk-17\/bin\/java \(Java 17\)/);
 			assert.match(error.message, /\/usr\/bin\/java \(Java 8\)/);
 			assert.match(error.message, /\/x\/java \(version unknown\)/);
-			assert.match(error.message, /markdownSupport\.java\.path/);
+			assert.match(error.message, /markdownSupport\.java\.home/);
 		});
 
 		it('says so if it found no Java at all', async () => {
 			const error = await rejection(findJava(undefined, fake({ env: { JAVA_HOME: '/none', PATH: '/bin' } })));
 
 			assert.match(error.message, /No Java was found in JAVA_HOME or on the PATH/);
-			assert.match(error.message, /markdownSupport\.java\.path/);
+			assert.match(error.message, /markdownSupport\.java\.home/);
 		});
 
 		it('ignores empty entries of the PATH and an empty JAVA_HOME', async () => {

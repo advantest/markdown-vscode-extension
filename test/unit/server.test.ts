@@ -9,7 +9,7 @@ const PROPERTIES_17 = '    java.specification.version = 17\n';
 describe('prepareLaunch', () => {
 	it('starts the server JAR with java -jar, the VM arguments before it', async () => {
 		const launch = await prepareLaunch(
-			settings({ javaPath: '/jdk-21/bin/java', serverJar: '/ls/markdown-ls.jar', vmArgs: ['-Xmx1g', '-ea'] }),
+			settings({ javaHome: '/jdk-21/bin/java', serverJar: '/ls/markdown-ls.jar', vmArgs: ['-Xmx1g', '-ea'] }),
 			environment({ '/jdk-21/bin/java': PROPERTIES_21, '/ls/markdown-ls.jar': '' }),
 		);
 
@@ -30,7 +30,7 @@ describe('prepareLaunch', () => {
 
 	it('points to the setting of the JAR if none is set', async () => {
 		const error = await rejection(
-			prepareLaunch(settings({ javaPath: '/jdk-21/bin/java' }), environment({ '/jdk-21/bin/java': PROPERTIES_21 })),
+			prepareLaunch(settings({ javaHome: '/jdk-21/bin/java' }), environment({ '/jdk-21/bin/java': PROPERTIES_21 })),
 		);
 
 		assert.equal(error.setting, 'markdownSupport.server.jar');
@@ -41,7 +41,7 @@ describe('prepareLaunch', () => {
 	it('points to the setting of the JAR if the JAR does not exist', async () => {
 		const error = await rejection(
 			prepareLaunch(
-				settings({ javaPath: '/jdk-21/bin/java', serverJar: '/missing.jar' }),
+				settings({ javaHome: '/jdk-21/bin/java', serverJar: '/missing.jar' }),
 				environment({ '/jdk-21/bin/java': PROPERTIES_21 }),
 			),
 		);
@@ -54,7 +54,7 @@ describe('prepareLaunch', () => {
 	it('looks for Java only once the JAR is found', async () => {
 		const env = environment({ '/jdk-21/bin/java': PROPERTIES_21 });
 
-		await rejection(prepareLaunch(settings({ javaPath: '/jdk-21/bin/java', serverJar: '/missing.jar' }), env));
+		await rejection(prepareLaunch(settings({ javaHome: '/jdk-21/bin/java', serverJar: '/missing.jar' }), env));
 
 		assert.deepEqual(env.runs, []);
 	});
@@ -62,12 +62,12 @@ describe('prepareLaunch', () => {
 	it('points to the setting of Java if no Java 21 is found', async () => {
 		const error = await rejection(
 			prepareLaunch(
-				settings({ javaPath: '/jdk-17/bin/java', serverJar: '/ls/markdown-ls.jar' }),
+				settings({ javaHome: '/jdk-17/bin/java', serverJar: '/ls/markdown-ls.jar' }),
 				environment({ '/jdk-17/bin/java': PROPERTIES_17, '/ls/markdown-ls.jar': '' }),
 			),
 		);
 
-		assert.equal(error.setting, 'markdownSupport.java.path');
+		assert.equal(error.setting, 'markdownSupport.java.home');
 		assert.match(error.message, /Java 17/);
 	});
 
@@ -81,14 +81,14 @@ describe('prepareLaunch', () => {
 		};
 
 		await assert.rejects(
-			prepareLaunch(settings({ javaPath: '/jdk/bin/java', serverJar: '/ls/markdown-ls.jar' }), failing),
+			prepareLaunch(settings({ javaHome: '/jdk/bin/java', serverJar: '/ls/markdown-ls.jar' }), failing),
 			TypeError,
 		);
 	});
 });
 
 function settings(values: Partial<Settings>): Settings {
-	return { javaPath: undefined, serverJar: undefined, vmArgs: [], ...values };
+	return { javaHome: undefined, serverJar: undefined, vmArgs: [], ...values };
 }
 
 function environment(

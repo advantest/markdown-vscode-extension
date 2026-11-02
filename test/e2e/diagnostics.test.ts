@@ -29,7 +29,7 @@ describe('the extension with the language server markdown-ls', function () {
 	after(async () => {
 		const configuration = vscode.workspace.getConfiguration('markdownSupport');
 		await configuration.update('server.jar', undefined, vscode.ConfigurationTarget.Global);
-		await configuration.update('java.path', undefined, vscode.ConfigurationTarget.Global);
+		await configuration.update('java.home', undefined, vscode.ConfigurationTarget.Global);
 		if (directory) {
 			await rm(directory, { recursive: true, force: true });
 		}
@@ -42,7 +42,7 @@ describe('the extension with the language server markdown-ls', function () {
 		await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(uri));
 
 		const configuration = vscode.workspace.getConfiguration('markdownSupport');
-		await configuration.update('java.path', JAVA, vscode.ConfigurationTarget.Global);
+		await configuration.update('java.home', JAVA, vscode.ConfigurationTarget.Global);
 		await configuration.update('server.jar', SERVER_JAR, vscode.ConfigurationTarget.Global);
 
 		const diagnostics = await diagnosticsFrom('markdown-ls', uri);

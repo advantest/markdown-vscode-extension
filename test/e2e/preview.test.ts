@@ -52,7 +52,7 @@ describe('the preview with the language server markdown-ls', function () {
 		await vscode.commands.executeCommand('workbench.action.closeAllEditors');
 		const configuration = vscode.workspace.getConfiguration('markdownSupport');
 		await configuration.update('server.jar', undefined, vscode.ConfigurationTarget.Global);
-		await configuration.update('java.path', undefined, vscode.ConfigurationTarget.Global);
+		await configuration.update('java.home', undefined, vscode.ConfigurationTarget.Global);
 		if (directory) {
 			await rm(directory, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
 		}
@@ -68,7 +68,7 @@ describe('the preview with the language server markdown-ls', function () {
 		const api = await extension.activate();
 
 		const configuration = vscode.workspace.getConfiguration('markdownSupport');
-		await configuration.update('java.path', JAVA, vscode.ConfigurationTarget.Global);
+		await configuration.update('java.home', JAVA, vscode.ConfigurationTarget.Global);
 		await configuration.update('server.jar', SERVER_JAR, vscode.ConfigurationTarget.Global);
 		const rendering = renderingOf(api, uri);
 		await vscode.commands.executeCommand('markdownSupport.preview.openToSide');

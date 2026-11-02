@@ -17,7 +17,7 @@ brings its results into the editor:
 
 ## Requirements
 
-- **Java 21** or newer, to run the server. The Java set in `markdownSupport.java.path` is taken if
+- **Java 21** or newer, to run the server. The Java set in `markdownSupport.java.home` is taken if
   there is one; otherwise the first Java 21 found in `JAVA_HOME` and then on the `PATH`.
 - **The JAR of `markdown-ls`**, set in `markdownSupport.server.jar`. The extension starts it with
   `java [VM arguments] -jar <JAR>`; the libraries the JAR needs are found in the directory `lib` next
@@ -58,7 +58,7 @@ In the preview:
 
 | Setting                                  | Description                                                             |
 |------------------------------------------|-------------------------------------------------------------------------|
-| `markdownSupport.java.path`              | The Java executable to run the server with.                             |
+| `markdownSupport.java.home`              | The Java executable to run the server with.                             |
 | `markdownSupport.server.jar`             | The JAR of the language server.                                         |
 | `markdownSupport.server.vmArgs`          | Options for the Java VM, e.g. `-Xmx1g`.                                 |
 | `markdownSupport.trace.server`           | Logs the messages with the server: `off`, `messages` or `verbose`.      |

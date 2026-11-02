@@ -97,7 +97,7 @@
     "configuration": {
       "title": "Markdown Support",
       "properties": {
-        "markdownSupport.java.path": {
+        "markdownSupport.java.home": {
           "type": "string",
           "default": "",
           "scope": "machine",

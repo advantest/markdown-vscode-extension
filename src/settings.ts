@@ -9,7 +9,7 @@ export interface Configuration {
 /** The settings that decide how the language server is started. */
 export interface Settings {
 	/** The Java executable to run the server with, or `undefined` to search `JAVA_HOME` and the `PATH`. */
-	javaPath: string | undefined;
+	javaHome: string | undefined;
 	/** The server's JAR, started with `java -jar`, or `undefined` if none is configured. */
 	serverJar: string | undefined;
 	/** Options for the Java VM, passed before `-jar`. */
@@ -22,7 +22,7 @@ export interface Settings {
  */
 export function readSettings(configuration: Configuration): Settings {
 	return {
-		javaPath: path(configuration.get('java.path')),
+		javaHome: path(configuration.get('java.home')),
 		serverJar: path(configuration.get('server.jar')),
 		vmArgs: strings(configuration.get('server.vmArgs')),
 	};

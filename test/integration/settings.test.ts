@@ -5,7 +5,7 @@ describe('The settings', () => {
 	const configuration = () => vscode.workspace.getConfiguration('markdownSupport');
 
 	for (const [key, defaultValue] of [
-		['java.path', ''],
+		['java.home', ''],
 		['server.jar', ''],
 		['server.vmArgs', []],
 	] as const) {
