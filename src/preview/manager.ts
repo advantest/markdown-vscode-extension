@@ -4,6 +4,7 @@ import { SECTION } from '../settings';
 import { resolveLink } from './links';
 import type { FromPage, PageStyle, ScrollToMessage, ShowElementMessage, ToPage } from './messages';
 import { previewPage } from './page';
+import { fileSystemRoots } from './roots';
 
 /** The view type of the preview's webview panels. */
 export const VIEW_TYPE = 'markdownSupport.preview';
@@ -89,10 +90,13 @@ class Preview {
 	private load(): void {
 		const webview = this.panel.webview;
 		const folder = this.uri.scheme === 'file' ? vscode.Uri.joinPath(this.uri, '..') : undefined;
+		const workspaceFolders = (vscode.workspace.workspaceFolders ?? []).map((workspaceFolder) => workspaceFolder.uri);
+		const localFolders = [...(folder ? [folder] : []), ...workspaceFolders].filter((uri) => uri.scheme === 'file');
 		this.roots = [
 			this.manager.media,
 			...(folder ? [folder] : []),
-			...(vscode.workspace.workspaceFolders ?? []).map((workspaceFolder) => workspaceFolder.uri),
+			...workspaceFolders,
+			...fileSystemRoots(process.platform, localFolders.map((uri) => uri.fsPath)).map((root) => vscode.Uri.file(root)),
 		];
 		webview.options = { enableScripts: true, localResourceRoots: this.roots };
 		this.panel.title = `Preview ${posix.basename(this.uri.path)}`;
@@ -196,7 +200,8 @@ class Preview {
 			// The page writes the addresses as a browser does, e.g. "file+" where VS Code writes "file%2B".
 			const normalised = new URL(address).href;
 			for (const root of this.roots) {
-				const prefix = new URL(`${this.panel.webview.asWebviewUri(root).toString()}/`).href;
+				// The address of a root of the file system ends in a slash already.
+				const prefix = new URL(`${this.panel.webview.asWebviewUri(root).toString().replace(/\/$/, '')}/`).href;
 				if (normalised.startsWith(prefix)) {
 					const path = normalised.slice(prefix.length).replace(/[?#].*$/s, '');
 					return vscode.Uri.joinPath(root, ...path.split('/').map(decodeURIComponent));
