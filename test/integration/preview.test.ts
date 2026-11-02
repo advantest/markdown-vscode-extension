@@ -175,6 +175,28 @@ describe('the preview', () => {
 		assert.deepEqual((await rendering).imageWidths, [20], 'the image stays');
 	});
 
+	it("shows a local image outside of the document's folder and the workspace, and its changes", async () => {
+		const image = path.join(directory, 'other pictures', 'outside.svg');
+		await mkdir(path.dirname(image));
+		await writeFile(image, square(10));
+		await mkdir(path.join(directory, 'documents'));
+		const editor = await showDocument(path.join('documents', 'outside.md'), '![](<../other pictures/outside.svg>)\n');
+		assert.ok(!vscode.workspace.getWorkspaceFolder(vscode.Uri.file(image)), 'the image is in no workspace folder');
+		renderer = async () => ({
+			version: editor.document.version,
+			html: '<p><img src="../other%20pictures/outside.svg"></p>',
+		});
+
+		let rendering = nextRendering(editor.document.uri);
+		manager.openPreviewToSide(editor.document.uri);
+		assert.deepEqual((await rendering).imageWidths, [10], 'the image is shown');
+
+		await writeFile(image, square(20));
+		rendering = nextRendering(editor.document.uri, (rendered) => rendered.version === editor.document.version);
+		await editor.edit((edit) => edit.insert(new vscode.Position(1, 0), '\n'));
+		assert.deepEqual((await rendering).imageWidths, [20], 'the changed image is shown');
+	});
+
 	it('opens in place of the editor, and closing either leaves the other open', async () => {
 		const editor = await showDocument('in-place.md', '# In place\n');
 
