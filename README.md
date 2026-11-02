@@ -17,8 +17,9 @@ brings its results into the editor:
 
 ## Requirements
 
-- **Java 21** or newer, to run the server. The Java set in `markdownSupport.java.home` is taken if
-  there is one; otherwise the first Java 21 found in `JAVA_HOME` and then on the `PATH`.
+- **Java 21** or newer, to run the server. The Java installation whose folder is set in
+  `markdownSupport.java.home` is taken if there is one, e.g. `/usr/lib/jvm/java-21`; otherwise the first
+  Java 21 found in `JAVA_HOME` and then on the `PATH`.
 - **The JAR of `markdown-ls`**, set in `markdownSupport.server.jar`. The extension starts it with
   `java [VM arguments] -jar <JAR>`; the libraries the JAR needs are found in the directory `lib` next
   to it, as in the distribution of `markdown-ls`.
@@ -29,8 +30,8 @@ The preview shows the HTML the server renders from a Markdown document, with the
 updated shortly after a change and at once when the document is saved. Code is highlighted with
 highlight.js and formulas are typeset with MathJax, both shipped with the extension; nothing is loaded
 from the web except images the document links to. Relative images and links are resolved against the
-folder of the document; an image changed on disk shows when the preview is updated. The preview looks
-the same in every colour theme.
+folder of the document, and an image may be any local file; an image changed on disk shows when the
+preview is updated. The preview looks the same in every colour theme.
 
 | Command                               | Title                    | Description                                     |
 |---------------------------------------|--------------------------|-------------------------------------------------|
@@ -58,14 +59,17 @@ In the preview:
 
 | Setting                                  | Description                                                             |
 |------------------------------------------|-------------------------------------------------------------------------|
-| `markdownSupport.java.home`              | The Java executable to run the server with.                             |
+| `markdownSupport.java.home`              | The folder of the Java installation to run the server with.             |
 | `markdownSupport.server.jar`             | The JAR of the language server.                                         |
 | `markdownSupport.server.vmArgs`          | Options for the Java VM, e.g. `-Xmx1g`.                                 |
 | `markdownSupport.trace.server`           | Logs the messages with the server: `off`, `messages` or `verbose`.      |
 | `markdownSupport.preview.openWebLinksIn` | Where clicked web addresses open: `integratedBrowser`, `systemBrowser`. |
 
 The first three are user settings only, since they decide which program is run; changing one of them
-restarts the server. The server's messages are shown in the output channel "Markdown Support".
+restarts the server. The settings editor marks a value that cannot be right, e.g. a JAR not ending in
+`.jar` or the Java executable in place of its installation folder. Whether a file exists is found out
+when the server is started: the message names the setting, and its button "Open Settings" shows that
+setting. The server's messages are shown in the output channel "Markdown Support".
 
 ## Building
 
@@ -93,9 +97,9 @@ runs the unit tests, the tests inside VS Code (which is downloaded into `.vscode
 time) and reports the coverage of both together; the HTML report is written to `coverage/html`.
 
 The end-to-end tests run the extension against the real server. They are skipped unless two
-environment variables name the server's JAR and a Java 21:
+environment variables name the server's JAR and the folder of a Java 21:
 
 ```sh
 MARKDOWN_SUPPORT_TEST_SERVER_JAR=/path/to/markdown-ls/markdown-ls.jar
-MARKDOWN_SUPPORT_TEST_JAVA=/path/to/jdk-21/bin/java
+MARKDOWN_SUPPORT_TEST_JAVA_HOME=/path/to/jdk-21
 ```
