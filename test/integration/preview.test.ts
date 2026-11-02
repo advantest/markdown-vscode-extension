@@ -311,6 +311,38 @@ describe('the preview', () => {
 		);
 	});
 
+	it('is only ever one, which the commands show the document in, in place or beside the editor', async () => {
+		const first = await showDocument('single-first.md', '# First\n');
+		let rendering = nextRendering(first.document.uri);
+		manager.openPreviewToSide(first.document.uri);
+		await rendering;
+
+		const other = vscode.Uri.file(path.join(directory, 'single-other.md'));
+		await writeFile(other.fsPath, '# Other\n');
+		rendering = nextRendering(other);
+		manager.openPreviewToSide(other);
+		await rendering;
+		assert.deepEqual(
+			previewTabs().map((tab) => [tab.label, tab.group.viewColumn]),
+			[['Preview single-other.md', vscode.ViewColumn.Two]],
+		);
+
+		rendering = nextRendering(first.document.uri);
+		manager.openPreview(first.document.uri);
+		await rendering;
+		assert.deepEqual(
+			previewTabs().map((tab) => [tab.label, tab.group.viewColumn]),
+			[['Preview single-first.md', vscode.ViewColumn.One]],
+		);
+
+		manager.openPreviewToSide(first.document.uri);
+		await waitUntil(() => previewTabs().length === 1 && previewTabs()[0].group.viewColumn === vscode.ViewColumn.Two);
+		assert.deepEqual(
+			previewTabs().map((tab) => [tab.label, tab.group.viewColumn]),
+			[['Preview single-first.md', vscode.ViewColumn.Two]],
+		);
+	});
+
 	it('drops a result older than the one shown', async () => {
 		const editor = await showDocument('stale.md', '# Stale\n');
 		const versions = [5, 3];
