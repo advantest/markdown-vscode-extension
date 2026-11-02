@@ -27,12 +27,13 @@ brings its results into the editor:
 ## Preview
 
 The preview shows the HTML the server renders from a Markdown document, with the unsaved changes. It is
-updated shortly after a change and at once when the document is saved. It follows the editor: when the
-editor shows another Markdown document, e.g. after the back button, the preview shows that one. Code is highlighted with
-highlight.js and formulas are typeset with MathJax, both shipped with the extension; nothing is loaded
-from the web except images the document links to. Relative images and links are resolved against the
-folder of the document, and an image may be any local file; an image changed on disk shows when the
-preview is updated. The preview looks the same in every colour theme.
+updated shortly after a change and at once when the document is saved. There is only ever one preview;
+the commands below show their document in it, in place of the one it showed. It follows the editor:
+when the editor shows another Markdown document, e.g. after the back button, the preview shows that
+one. Code is highlighted with highlight.js and formulas are typeset with MathJax, both shipped with the
+extension; nothing is loaded from the web except images the document links to. Relative images and
+links are resolved against the folder of the document, and an image may be any local file; an image
+changed on disk shows when the preview is updated. The preview looks the same in every colour theme.
 
 | Command                               | Title                    | Description                                     |
 |---------------------------------------|--------------------------|-------------------------------------------------|
