@@ -12,6 +12,8 @@ export const VIEW_TYPE = 'markdownSupport.preview';
 export const UPDATE_DELAY_MS = 300;
 /** The command of VS Code's integrated browser; older versions of VS Code have none. */
 const INTEGRATED_BROWSER = 'workbench.action.browser.open';
+/** The schemes of the documents the server is given, so the only ones it can render. */
+const PREVIEWED_SCHEMES = ['file', 'untitled'];
 
 /** The HTML the server rendered from a version of the document. */
 export interface RenderResult {
@@ -83,6 +85,11 @@ class Preview {
 	) {
 		panel.webview.onDidReceiveMessage((message: FromPage) => this.receive(message));
 		panel.onDidDispose(() => this.dispose());
+		panel.onDidChangeViewState(() => {
+			if (panel.active) {
+				manager.used(this);
+			}
+		});
 		this.load();
 	}
 
@@ -297,7 +304,24 @@ export class PreviewManager implements vscode.Disposable {
 			vscode.workspace.onDidSaveTextDocument((document) => {
 				this.previewsOf(document.uri).forEach((preview) => preview.update(0));
 			}),
+			vscode.window.onDidChangeActiveTextEditor((editor) => this.follow(editor?.document)),
 		);
+	}
+
+	/**
+	 * Shows the Markdown document of the active editor in the preview used last, unless a preview shows it already,
+	 * so that the preview follows the editor, e.g. to another file or back with the back button.
+	 */
+	private follow(document: vscode.TextDocument | undefined): void {
+		if (
+			document?.languageId !== 'markdown' ||
+			!PREVIEWED_SCHEMES.includes(document.uri.scheme) ||
+			this.previewsOf(document.uri).length > 0
+		) {
+			return;
+		}
+		const preview = [...this.previews].at(-1);
+		preview?.retarget(document.uri);
 	}
 
 	/** Opens the preview of the document, or of the active editor's, in place of the editor. */
@@ -430,6 +454,7 @@ export class PreviewManager implements vscode.Disposable {
 		const existing = this.previewsOf(uri)[0];
 		if (existing) {
 			existing.panel.reveal(viewColumn === vscode.ViewColumn.Beside ? undefined : viewColumn, preserveFocus);
+			this.used(existing);
 			return existing;
 		}
 		const panel = vscode.window.createWebviewPanel(
@@ -460,6 +485,13 @@ export class PreviewManager implements vscode.Disposable {
 	/** @internal */
 	elementShown(shown: ShownElement): void {
 		this.shownElementEmitter.fire(shown);
+	}
+
+	/** @internal Notes the preview as the one used last; the set keeps the order in which they were added. */
+	used(preview: Preview): void {
+		if (this.previews.delete(preview)) {
+			this.previews.add(preview);
+		}
 	}
 
 	/** @internal */
