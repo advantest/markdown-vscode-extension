@@ -85,11 +85,6 @@ class Preview {
 	) {
 		panel.webview.onDidReceiveMessage((message: FromPage) => this.receive(message));
 		panel.onDidDispose(() => this.dispose());
-		panel.onDidChangeViewState(() => {
-			if (panel.active) {
-				manager.used(this);
-			}
-		});
 		this.load();
 	}
 
@@ -272,10 +267,10 @@ class Preview {
 	}
 }
 
-/** Opens the previews of Markdown documents and keeps them up to date. */
+/** Opens the preview of Markdown documents and keeps it up to date; there is at most one, showing one document. */
 export class PreviewManager implements vscode.Disposable {
 	readonly media: vscode.Uri;
-	private readonly previews = new Set<Preview>();
+	private preview: Preview | undefined;
 	private readonly renderedEmitter = new vscode.EventEmitter<Rendered>();
 	private readonly revealedEmitter = new vscode.EventEmitter<Revealed>();
 	private readonly shownElementEmitter = new vscode.EventEmitter<ShownElement>();
@@ -298,30 +293,29 @@ export class PreviewManager implements vscode.Disposable {
 		this.disposables.push(
 			vscode.workspace.onDidChangeTextDocument((event) => {
 				if (event.contentChanges.length > 0) {
-					this.previewsOf(event.document.uri).forEach((preview) => preview.update(UPDATE_DELAY_MS));
+					this.previewOf(event.document.uri)?.update(UPDATE_DELAY_MS);
 				}
 			}),
 			vscode.workspace.onDidSaveTextDocument((document) => {
-				this.previewsOf(document.uri).forEach((preview) => preview.update(0));
+				this.previewOf(document.uri)?.update(0);
 			}),
 			vscode.window.onDidChangeActiveTextEditor((editor) => this.follow(editor?.document)),
 		);
 	}
 
 	/**
-	 * Shows the Markdown document of the active editor in the preview used last, unless a preview shows it already,
-	 * so that the preview follows the editor, e.g. to another file or back with the back button.
+	 * Shows the Markdown document of the active editor in the preview, unless it shows it already, so that the preview
+	 * follows the editor, e.g. to another file or back with the back button.
 	 */
 	private follow(document: vscode.TextDocument | undefined): void {
 		if (
 			document?.languageId !== 'markdown' ||
 			!PREVIEWED_SCHEMES.includes(document.uri.scheme) ||
-			this.previewsOf(document.uri).length > 0
+			this.previewOf(document.uri)
 		) {
 			return;
 		}
-		const preview = [...this.previews].at(-1);
-		preview?.retarget(document.uri);
+		this.preview?.retarget(document.uri);
 	}
 
 	/** Opens the preview of the document, or of the active editor's, in place of the editor. */
@@ -342,8 +336,8 @@ export class PreviewManager implements vscode.Disposable {
 
 	/** Shows the preview of the active editor in its place, or the source of the active preview in its place. */
 	async togglePreview(): Promise<void> {
-		const preview = [...this.previews].find((candidate) => candidate.panel.active);
-		if (preview) {
+		const preview = this.preview;
+		if (preview?.panel.active) {
 			const document = await vscode.workspace.openTextDocument(preview.uri);
 			await vscode.window.showTextDocument(document, preview.panel.viewColumn);
 			return;
@@ -356,7 +350,7 @@ export class PreviewManager implements vscode.Disposable {
 	 * opens in the editor and the preview, another file in its default editor, a web address in a browser.
 	 */
 	async openLink(documentUri: vscode.Uri, href: string): Promise<void> {
-		const preview = this.previewsOf(documentUri)[0];
+		const preview = this.previewOf(documentUri);
 		const link = resolveLink(href, documentUri.toString());
 		try {
 			switch (link.kind) {
@@ -389,7 +383,7 @@ export class PreviewManager implements vscode.Disposable {
 			viewColumn: source?.viewColumn ?? vscode.ViewColumn.Beside,
 			preserveFocus: true,
 		});
-		const preview = this.previewsOf(target)[0] ?? this.previewsOf(from)[0];
+		const preview = this.previewOf(target) ?? this.previewOf(from);
 		if (preview === undefined) {
 			return;
 		}
@@ -445,31 +439,58 @@ export class PreviewManager implements vscode.Disposable {
 		preview.reveal({ type: 'showElement', offset, length });
 	}
 
-	/** Asks for the HTML of every preview again, e.g. after the server started. */
+	/** Asks for the HTML of the preview again, e.g. after the server started. */
 	refreshAll(): void {
-		this.previews.forEach((preview) => preview.update(0));
+		this.preview?.update(0);
 	}
 
+	/**
+	 * Shows the document in the preview, in the given column or beside the editor. The one preview shows the document
+	 * in place of another one; it is opened anew where there is none or where it moves to another column, as a panel
+	 * revealed in another group would be opened there as an editor's preview, which the next editor opened replaces.
+	 */
 	private show(uri: vscode.Uri, viewColumn: vscode.ViewColumn, preserveFocus: boolean): Preview {
-		const existing = this.previewsOf(uri)[0];
-		if (existing) {
-			existing.panel.reveal(viewColumn === vscode.ViewColumn.Beside ? undefined : viewColumn, preserveFocus);
-			this.used(existing);
+		const existing = this.preview;
+		const column = existing ? this.placement(existing, uri, viewColumn) : viewColumn;
+		if (existing && column === existing.panel.viewColumn) {
+			if (!same(existing.uri, uri)) {
+				existing.retarget(uri);
+			}
+			existing.panel.reveal(column, preserveFocus);
 			return existing;
 		}
+		existing?.panel.dispose();
 		const panel = vscode.window.createWebviewPanel(
 			VIEW_TYPE,
 			'Preview',
-			{ viewColumn, preserveFocus },
+			{ viewColumn: column, preserveFocus },
 			{ enableScripts: true, enableFindWidget: true, retainContextWhenHidden: true },
 		);
-		const preview = new Preview(this, panel, uri);
-		this.previews.add(preview);
-		return preview;
+		this.preview = new Preview(this, panel, uri);
+		return this.preview;
 	}
 
-	private previewsOf(uri: vscode.Uri): Preview[] {
-		return [...this.previews].filter((preview) => same(preview.uri, uri));
+	/**
+	 * Where the existing preview goes: in the given column, or beside the editor, where it stays if it is visible
+	 * there already, i.e. in another column than the editor of the document, or than the active editor.
+	 */
+	private placement(preview: Preview, uri: vscode.Uri, viewColumn: vscode.ViewColumn): vscode.ViewColumn {
+		if (viewColumn !== vscode.ViewColumn.Beside) {
+			return viewColumn;
+		}
+		const editor =
+			vscode.window.visibleTextEditors.find((candidate) => same(candidate.document.uri, uri)) ??
+			vscode.window.activeTextEditor;
+		const { panel } = preview;
+		if (panel.visible && editor?.viewColumn !== undefined && panel.viewColumn !== editor.viewColumn) {
+			return panel.viewColumn ?? viewColumn;
+		}
+		return vscode.ViewColumn.Beside;
+	}
+
+	/** The preview, where it shows the document. */
+	private previewOf(uri: vscode.Uri): Preview | undefined {
+		return this.preview && same(this.preview.uri, uri) ? this.preview : undefined;
 	}
 
 	/** @internal */
@@ -487,20 +508,15 @@ export class PreviewManager implements vscode.Disposable {
 		this.shownElementEmitter.fire(shown);
 	}
 
-	/** @internal Notes the preview as the one used last; the set keeps the order in which they were added. */
-	used(preview: Preview): void {
-		if (this.previews.delete(preview)) {
-			this.previews.add(preview);
+	/** @internal */
+	forget(preview: Preview): void {
+		if (this.preview === preview) {
+			this.preview = undefined;
 		}
 	}
 
-	/** @internal */
-	forget(preview: Preview): void {
-		this.previews.delete(preview);
-	}
-
 	dispose(): void {
-		[...this.previews].forEach((preview) => preview.panel.dispose());
+		this.preview?.panel.dispose();
 		this.disposables.forEach((disposable) => disposable.dispose());
 	}
 }
