@@ -268,6 +268,49 @@ describe('the preview', () => {
 		assert.ok(calls[0] - saved < UPDATE_DELAY_MS, `rendered ${calls[0] - saved} ms after the save`);
 	});
 
+	it('follows the editor to another Markdown document, also when going back, and is updated on its changes', async () => {
+		const first = await showDocument('follow-first.md', '# First\n');
+		let rendering = nextRendering(first.document.uri);
+		manager.openPreviewToSide(first.document.uri);
+		await rendering;
+
+		const second = await showDocument('follow-second.md', '# Second\n');
+		rendering = nextRendering(second.document.uri);
+		await vscode.window.showTextDocument(second.document, vscode.ViewColumn.One);
+		await rendering;
+		assert.deepEqual(
+			previewTabs().map((tab) => tab.label),
+			['Preview follow-second.md'],
+		);
+
+		rendering = nextRendering(second.document.uri, (rendered) => rendered.version === second.document.version);
+		await second.edit((edit) => edit.insert(new vscode.Position(1, 0), 'Changed\n'));
+		await rendering;
+
+		rendering = nextRendering(first.document.uri);
+		await vscode.commands.executeCommand('workbench.action.navigateBack');
+		await rendering;
+		assert.deepEqual(
+			previewTabs().map((tab) => tab.label),
+			['Preview follow-first.md'],
+		);
+	});
+
+	it('does not follow the editor to a document that is no Markdown', async () => {
+		const editor = await showDocument('stay.md', '# Stay\n');
+		const rendering = nextRendering(editor.document.uri);
+		manager.openPreviewToSide(editor.document.uri);
+		await rendering;
+
+		await showDocument('notes.txt', 'plain text');
+		await new Promise((resolve) => setTimeout(resolve, UPDATE_DELAY_MS * 2));
+
+		assert.deepEqual(
+			previewTabs().map((tab) => tab.label),
+			['Preview stay.md'],
+		);
+	});
+
 	it('drops a result older than the one shown', async () => {
 		const editor = await showDocument('stale.md', '# Stale\n');
 		const versions = [5, 3];
