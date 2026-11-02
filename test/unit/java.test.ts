@@ -29,35 +29,62 @@ describe('parseJavaVersion', () => {
 });
 
 describe('findJava', () => {
-	describe('with a configured Java executable', () => {
-		it('takes it if it is a Java 21', async () => {
+	describe('with a configured Java installation', () => {
+		it('takes its bin/java if it is a Java 21', async () => {
 			const environment = fake({
 				files: { '/jdk-21/bin/java': PROPERTIES_21, '/jdk-25/bin/java': '    java.specification.version = 25\n' },
 				env: { JAVA_HOME: '/jdk-25' },
 			});
 
-			assert.deepEqual(await findJava('/jdk-21/bin/java', environment), {
-				executable: '/jdk-21/bin/java',
-				version: 21,
-			});
+			assert.deepEqual(await findJava('/jdk-21', environment), { executable: '/jdk-21/bin/java', version: 21 });
 		});
 
-		it('asks it for its properties and its version', async () => {
+		it('accepts the folder with a slash at its end', async () => {
 			const environment = fake({ files: { '/jdk-21/bin/java': PROPERTIES_21 } });
 
-			await findJava('/jdk-21/bin/java', environment);
+			assert.equal((await findJava('/jdk-21/', environment)).executable, '/jdk-21/bin/java');
+		});
+
+		it('takes its bin\\java.exe on Windows', async () => {
+			const environment = fake({
+				platform: 'win32',
+				files: { 'C:\\Program Files\\jdk-21\\bin\\java.exe': PROPERTIES_21 },
+			});
+
+			assert.equal(
+				(await findJava('C:\\Program Files\\jdk-21', environment)).executable,
+				'C:\\Program Files\\jdk-21\\bin\\java.exe',
+			);
+		});
+
+		it('asks its Java for its properties and its version', async () => {
+			const environment = fake({ files: { '/jdk-21/bin/java': PROPERTIES_21 } });
+
+			await findJava('/jdk-21', environment);
 
 			assert.deepEqual(environment.runs, [['/jdk-21/bin/java', '-XshowSettings:properties', '-version']]);
 		});
 
-		it('rejects it if it does not exist, without searching elsewhere', async () => {
-			const environment = fake({ files: { '/jdk-21/bin/java': PROPERTIES_21 }, env: { JAVA_HOME: '/jdk-21' } });
+		it('rejects a file, e.g. the Java executable itself, and names the folder to set instead', async () => {
+			const environment = fake({ files: { '/jdk-21/bin/java': PROPERTIES_21 } });
 
-			const error = await rejection(findJava('/missing/java', environment));
+			const error = await rejection(findJava('/jdk-21/bin/java', environment));
 
 			assert.match(error.message, /markdownSupport\.java\.home/);
-			assert.match(error.message, /\/missing\/java/);
-			assert.match(error.message, /does not exist/);
+			assert.match(error.message, /\/jdk-21\/bin\/java is a file, not the folder of a Java installation/);
+			assert.match(error.message, /e\.g\. \/jdk-21[^/]/);
+			assert.deepEqual(environment.runs, []);
+		});
+
+		it('rejects a folder without bin/java, without searching elsewhere', async () => {
+			const environment = fake({ files: { '/jdk-21/bin/java': PROPERTIES_21 }, env: { JAVA_HOME: '/jdk-21' } });
+
+			const error = await rejection(findJava('/missing', environment));
+
+			assert.match(error.message, /markdownSupport\.java\.home/);
+			assert.match(error.message, /The folder \/missing set in/);
+			assert.match(error.message, /no Java installation/);
+			assert.match(error.message, /\/missing\/bin\/java does not exist/);
 		});
 
 		it('rejects it if it is older than Java 21, without searching elsewhere', async () => {
@@ -66,31 +93,30 @@ describe('findJava', () => {
 				env: { JAVA_HOME: '/jdk-21' },
 			});
 
-			const error = await rejection(findJava('/jdk-17/bin/java', environment));
+			const error = await rejection(findJava('/jdk-17', environment));
 
-			assert.match(error.message, /\/jdk-17\/bin\/java is Java 17/);
+			assert.match(error.message, /The Java \/jdk-17 set in markdownSupport\.java\.home is Java 17/);
 			assert.match(error.message, /Java 21 or newer/);
 		});
 
 		it('rejects it if it tells no version', async () => {
-			const environment = fake({ files: { '/bin/not-java': 'usage: not-java' } });
+			const environment = fake({ files: { '/not-java/bin/java': 'usage: not-java' } });
 
-			const error = await rejection(findJava('/bin/not-java', environment));
+			const error = await rejection(findJava('/not-java', environment));
 
-			assert.match(error.message, /\/bin\/not-java/);
+			assert.match(error.message, /The Java \/not-java set in markdownSupport\.java\.home/);
 			assert.match(error.message, /version/);
 		});
 
 		it('rejects it if it cannot be run', async () => {
-			const environment = fake({ files: { '/bin/java': failure('EACCES') } });
+			const environment = fake({ files: { '/jdk/bin/java': failure('EACCES') } });
 
-			const error = await rejection(findJava('/bin/java', environment));
+			const error = await rejection(findJava('/jdk', environment));
 
-			assert.match(error.message, /could not be run/);
+			assert.match(error.message, /The Java \/jdk set in markdownSupport\.java\.home could not be run/);
 			assert.match(error.message, /EACCES/);
 		});
 	});
-
 	describe('without a configured Java executable', () => {
 		it('takes the Java of JAVA_HOME', async () => {
 			const environment = fake({

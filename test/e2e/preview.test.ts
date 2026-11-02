@@ -11,7 +11,7 @@ import type { Rendered } from '../../src/preview/manager';
  * named by the environment variables below; without them the tests are skipped.
  */
 const SERVER_JAR = process.env.MARKDOWN_SUPPORT_TEST_SERVER_JAR;
-const JAVA = process.env.MARKDOWN_SUPPORT_TEST_JAVA;
+const JAVA_HOME = process.env.MARKDOWN_SUPPORT_TEST_JAVA_HOME;
 
 const EXTENSION_ID = 'advantest.markdown-support';
 const RENDER_TIMEOUT = 60_000;
@@ -41,8 +41,8 @@ describe('the preview with the language server markdown-ls', function () {
 	let directory: string | undefined;
 
 	before(async function () {
-		if (!SERVER_JAR || !JAVA) {
-			console.log('    Skipped: set MARKDOWN_SUPPORT_TEST_SERVER_JAR and MARKDOWN_SUPPORT_TEST_JAVA to run these tests.');
+		if (!SERVER_JAR || !JAVA_HOME) {
+			console.log('    Skipped: set MARKDOWN_SUPPORT_TEST_SERVER_JAR and MARKDOWN_SUPPORT_TEST_JAVA_HOME to run these tests.');
 			this.skip();
 		}
 		directory = await mkdtemp(path.join(tmpdir(), 'markdown-support-e2e-preview-'));
@@ -68,7 +68,7 @@ describe('the preview with the language server markdown-ls', function () {
 		const api = await extension.activate();
 
 		const configuration = vscode.workspace.getConfiguration('markdownSupport');
-		await configuration.update('java.home', JAVA, vscode.ConfigurationTarget.Global);
+		await configuration.update('java.home', JAVA_HOME, vscode.ConfigurationTarget.Global);
 		await configuration.update('server.jar', SERVER_JAR, vscode.ConfigurationTarget.Global);
 		const rendering = renderingOf(api, uri);
 		await vscode.commands.executeCommand('markdownSupport.preview.openToSide');
