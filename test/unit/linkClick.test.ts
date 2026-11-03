@@ -35,6 +35,11 @@ describe('a click in the preview', () => {
 		assert.ok(click(element('https://example.com/')).calls.includes('preventDefault'));
 	});
 
+	// VS Code's own handler in the webview would otherwise open the link as well, in the system's browser.
+	it("does not reach VS Code's own handler of link clicks", () => {
+		assert.ok(click(element('https://example.com/')).calls.includes('stopPropagation'));
+	});
+
 	it('is left alone outside of a link', () => {
 		assert.deepEqual(click(element(undefined)), { calls: [], opened: [] });
 	});
