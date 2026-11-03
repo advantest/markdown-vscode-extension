@@ -7,16 +7,19 @@ interface ClickedElement {
 export interface Click {
 	readonly target: unknown;
 	preventDefault(): void;
+	stopPropagation(): void;
 }
 
 /**
  * Lets the extension open the link a click in the page is in, as the webview cannot navigate; the target as written
- * in the HTML. A click outside of a link is left alone.
+ * in the HTML. The click goes no further, as VS Code's own handler in the webview would open the link in the system's
+ * browser as well. A click outside of a link is left alone.
  */
 export function followLink(click: Click, open: (href: string) => void): void {
 	const link = (click.target as ClickedElement | null)?.closest('a[href]');
 	if (link) {
 		click.preventDefault();
+		click.stopPropagation();
 		open(link.getAttribute('href') ?? '');
 	}
 }
