@@ -50,9 +50,10 @@ Shortcuts".
 In the preview:
 
 - A link to an anchor scrolls the preview; a link to another Markdown document opens it in the editor
-  and the preview, scrolled to its anchor; a link to another file opens it in its default editor.
-- A web address opens in VS Code's integrated browser, or in the system browser where
-  `markdownSupport.preview.openWebLinksIn` says so or VS Code has no integrated browser.
+  and the preview, both scrolled to its anchor; a link to another file opens it in its default editor.
+- A web address opens in VS Code's integrated browser, the one open already if there is one, or in the
+  system browser where `markdownSupport.preview.openWebLinksIn` says so or VS Code has no integrated
+  browser.
 - **Ctrl + click** (**Cmd + click** on macOS) on an element selects its source in the editor.
 - **Alt + mouse wheel** zooms an image or a diagram, dragging it with the left mouse button moves it,
   the right mouse button resets it.
