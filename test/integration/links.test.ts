@@ -162,13 +162,14 @@ describe('the links in the preview', () => {
 		assert.deepEqual(opened, ['https://example.com/page']);
 	});
 
-	it('opens a web address in the integrated browser of VS Code by default', async () => {
+	it('opens a web address in the integrated browser of VS Code by default, in the one open already', async () => {
 		fakeIntegratedBrowser();
 		const uri = await preview('web-integrated.md');
 
 		await manager.openLink(uri, 'https://example.com/page');
 
-		assert.deepEqual(browsed, ['https://example.com/page']);
+		// VS Code navigates the first open browser whose address matches the glob pattern, which every web address does.
+		assert.deepEqual(browsed, [{ url: 'https://example.com/page', reuseUrlFilter: '/**' }]);
 		assert.deepEqual(opened, []);
 	});
 
