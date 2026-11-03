@@ -99,6 +99,23 @@ describe('the links in the preview', () => {
 		assert.deepEqual(plain(await revealing), { uri: uri.toString(), anchor: 'end', found: true });
 	});
 
+	it('scrolls the editor to the section of an anchor in the same document too', async () => {
+		const uri = await file('same-section.md', SECTIONS);
+		await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(uri), vscode.ViewColumn.One);
+		const rendering = next(manager.onDidRender, (rendered: Rendered) => same(rendered.uri, uri));
+		manager.openPreviewToSide(uri);
+		await rendering;
+		const part = SECTIONS.indexOf('## Part');
+
+		await manager.openLink(uri, '#part');
+
+		const editor = vscode.window.visibleTextEditors.find((candidate) => same(candidate.document.uri, uri));
+		const position = editor!.document.positionAt(part);
+		await waitUntil(() => editor!.selection.active.isEqual(position));
+		assert.ok(editor!.selection.isEmpty, 'the cursor is put on the heading, nothing is selected');
+		await waitUntil(() => editor!.visibleRanges.some((range) => range.contains(position)));
+	});
+
 	it('opens a Markdown file in the editor and the preview, scrolled to its anchor', async () => {
 		const uri = await preview('from.md');
 		const other = await file('to.md', '# To\n');
