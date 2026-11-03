@@ -137,7 +137,18 @@ function scrollTo(anchor: string): void {
 	} else {
 		target?.scrollIntoView();
 	}
-	vscode.postMessage({ type: 'revealed', anchor, found: target !== undefined && target !== null });
+	const element = anchor === '' ? null : target?.closest('[source-offset]');
+	vscode.postMessage({
+		type: 'revealed',
+		anchor,
+		found: target !== undefined && target !== null,
+		source: element
+			? {
+					offset: Number.parseInt(element.getAttribute('source-offset') ?? '', 10),
+					length: Number.parseInt(element.getAttribute('source-length') ?? '', 10),
+				}
+			: null,
+	});
 }
 
 function showElement(offset: number, length: number): void {

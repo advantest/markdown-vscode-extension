@@ -83,6 +83,8 @@ export interface RevealedMessage {
 	readonly type: 'revealed';
 	readonly anchor: string;
 	readonly found: boolean;
+	/** The part of the source the element scrolled to was rendered from, in UTF-16 code units; null for none. */
+	readonly source: { readonly offset: number; readonly length: number } | null;
 }
 
 /** An element was Ctrl- or Cmd-clicked; the part of the source it was rendered from, in UTF-16 code units. */

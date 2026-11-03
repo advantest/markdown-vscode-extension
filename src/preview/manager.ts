@@ -246,7 +246,7 @@ class Preview {
 				void this.manager.openLink(this.uri, message.href);
 				break;
 			case 'revealed':
-				this.manager.revealed({ uri: this.uri, anchor: message.anchor, found: message.found });
+				this.manager.revealed({ uri: this.uri, anchor: message.anchor, found: message.found }, message.source);
 				break;
 			case 'jumpToSource':
 				void this.manager.jumpToSource(this.uri, message.offset, message.length);
@@ -273,6 +273,8 @@ class Preview {
 export class PreviewManager implements vscode.Disposable {
 	readonly media: vscode.Uri;
 	private preview: Preview | undefined;
+	/** The anchor in another document a link led to, whose section the document's editor scrolls to as well. */
+	private followedAnchor: { readonly uri: vscode.Uri; readonly anchor: string } | undefined;
 	private readonly renderedEmitter = new vscode.EventEmitter<Rendered>();
 	private readonly revealedEmitter = new vscode.EventEmitter<Revealed>();
 	private readonly shownElementEmitter = new vscode.EventEmitter<ShownElement>();
@@ -393,6 +395,8 @@ export class PreviewManager implements vscode.Disposable {
 			preview.retarget(target);
 		}
 		preview.panel.reveal(undefined, true);
+		// The editor follows, once the preview found the anchor and the part of the source its section starts at.
+		this.followedAnchor = anchor === '' ? undefined : { uri: target, anchor };
 		preview.reveal({ type: 'scrollTo', anchor });
 	}
 
@@ -501,8 +505,26 @@ export class PreviewManager implements vscode.Disposable {
 	}
 
 	/** @internal */
-	revealed(revealed: Revealed): void {
+	revealed(revealed: Revealed, source: { offset: number; length: number } | null): void {
+		const followed = this.followedAnchor;
+		if (followed && same(followed.uri, revealed.uri) && followed.anchor === revealed.anchor) {
+			this.followedAnchor = undefined;
+			if (revealed.found && source) {
+				this.scrollEditor(revealed.uri, source.offset);
+			}
+		}
 		this.revealedEmitter.fire(revealed);
+	}
+
+	/** Puts the cursor at an offset in the visible editor of a document and scrolls the editor to put it on top. */
+	private scrollEditor(uri: vscode.Uri, offset: number): void {
+		const editor = vscode.window.visibleTextEditors.find((candidate) => same(candidate.document.uri, uri));
+		if (editor === undefined || Number.isNaN(offset)) {
+			return;
+		}
+		const position = editor.document.positionAt(offset);
+		editor.selection = new vscode.Selection(position, position);
+		editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.AtTop);
 	}
 
 	/** @internal */
