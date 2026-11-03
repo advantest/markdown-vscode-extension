@@ -3,6 +3,7 @@
  * sends into the page, then highlights the code with highlight.js, typesets the formulas with MathJax and lets the
  * images zoom. A Ctrl- or Cmd-click on an element leads to its source.
  */
+import { followLink } from '../preview/linkClick';
 import type { ElementStyle, FromPage, PageStyle, ToPage } from '../preview/messages';
 
 interface VsCodeApi {
@@ -181,13 +182,7 @@ app.addEventListener('mouseout', (event) => {
 });
 
 // The extension opens the links, as the webview cannot navigate.
-app.addEventListener('click', (event) => {
-	const link = (event.target as Element).closest('a[href]');
-	if (link) {
-		event.preventDefault();
-		vscode.postMessage({ type: 'openLink', href: link.getAttribute('href') ?? '' });
-	}
-});
+app.addEventListener('click', (event) => followLink(event, (href) => vscode.postMessage({ type: 'openLink', href })));
 
 window.addEventListener('message', (event: MessageEvent<ToPage>) => {
 	const message = event.data;
