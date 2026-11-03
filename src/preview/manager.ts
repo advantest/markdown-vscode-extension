@@ -403,7 +403,9 @@ export class PreviewManager implements vscode.Disposable {
 	private async openWeb(address: string): Promise<void> {
 		const target = vscode.workspace.getConfiguration(SECTION).get<string>('preview.openWebLinksIn');
 		if (target !== 'systemBrowser' && (await vscode.commands.getCommands(true)).includes(INTEGRATED_BROWSER)) {
-			await vscode.commands.executeCommand(INTEGRATED_BROWSER, address);
+			// The first browser open whose address matches the glob pattern, as every web address does, goes to the
+			// address; there is a new one only where none is open. VS Code before 1.114 ignores the pattern.
+			await vscode.commands.executeCommand(INTEGRATED_BROWSER, { url: address, reuseUrlFilter: '/**' });
 		} else {
 			await this.environment.openExternal(vscode.Uri.parse(address));
 		}
