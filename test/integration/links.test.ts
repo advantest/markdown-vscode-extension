@@ -9,8 +9,21 @@ const EXTENSION_ID = 'advantest.markdown-support';
 const INTEGRATED_BROWSER = 'workbench.action.browser.open';
 const TIMEOUT = 15_000;
 
+/** A document whose headings are where the headings of HTML say they are in the source. */
+const SECTIONS = `# Top\n\n${'Text\n\n'.repeat(200)}## Part\n\nText\n\n## End\n\n${'Text\n\n'.repeat(200)}`;
+
+/** The heading rendered from a part of SECTIONS, with the source offset and length the server would give it. */
+function heading(tag: string, id: string, source: string): string {
+	const offset = SECTIONS.indexOf(source);
+	return `<${tag} id="${id}" source-offset="${offset}" source-length="${source.length}">${id}</${tag}>`;
+}
+
 /** Every document renders to the same headings, so that each has the anchors "top", "part" and "end". */
-const HTML = '<h1 id="top">Top</h1><p style="height: 3000px">Text</p><h2 id="part">Part</h2><h2 id="end">End</h2>';
+const HTML =
+	heading('h1', 'top', '# Top') +
+	'<p style="height: 3000px">Text</p>' +
+	heading('h2', 'part', '## Part') +
+	heading('h2', 'end', '## End');
 
 describe('the links in the preview', () => {
 	let directory: string;
@@ -98,6 +111,35 @@ describe('the links in the preview', () => {
 			vscode.window.visibleTextEditors.some((editor) => same(editor.document.uri, other)),
 			'to.md is open in an editor',
 		);
+	});
+
+	it('scrolls the editor of a linked Markdown file to the section of its anchor too', async () => {
+		const uri = await preview('from-section.md');
+		const other = await file('to-section.md', SECTIONS);
+		const part = SECTIONS.indexOf('## Part');
+
+		await manager.openLink(uri, 'to-section.md#part');
+
+		let editor: vscode.TextEditor | undefined;
+		await waitUntil(() => {
+			editor = vscode.window.visibleTextEditors.find((candidate) => same(candidate.document.uri, other));
+			return editor?.selection.active.isEqual(editor.document.positionAt(part)) === true;
+		});
+		const position = editor!.document.positionAt(part);
+		assert.ok(editor!.selection.isEmpty, 'the cursor is put on the heading, nothing is selected');
+		await waitUntil(() => editor!.visibleRanges.some((range) => range.contains(position)));
+	});
+
+	it('leaves the editor of a linked Markdown file alone where the preview does not find the anchor', async () => {
+		const uri = await preview('from-missing.md');
+		const other = await file('to-missing.md', SECTIONS);
+
+		const revealing = next(manager.onDidReveal, (revealed: Revealed) => same(revealed.uri, other));
+		await manager.openLink(uri, 'to-missing.md#missing');
+		await revealing;
+
+		const editor = vscode.window.visibleTextEditors.find((candidate) => same(candidate.document.uri, other));
+		assert.equal(editor?.selection.active.line, 0);
 	});
 
 	it('opens another file in its default editor', async () => {
