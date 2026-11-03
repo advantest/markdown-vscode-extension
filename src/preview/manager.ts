@@ -273,7 +273,7 @@ class Preview {
 export class PreviewManager implements vscode.Disposable {
 	readonly media: vscode.Uri;
 	private preview: Preview | undefined;
-	/** The anchor in another document a link led to, whose section the document's editor scrolls to as well. */
+	/** The anchor a link led to, whose section the editor of the anchor's document scrolls to as well. */
 	private followedAnchor: { readonly uri: vscode.Uri; readonly anchor: string } | undefined;
 	private readonly renderedEmitter = new vscode.EventEmitter<Rendered>();
 	private readonly revealedEmitter = new vscode.EventEmitter<Revealed>();
@@ -359,7 +359,9 @@ export class PreviewManager implements vscode.Disposable {
 		try {
 			switch (link.kind) {
 				case 'anchor':
-					preview?.reveal({ type: 'scrollTo', anchor: link.anchor });
+					if (preview) {
+						this.scrollToAnchor(preview, link.anchor);
+					}
 					break;
 				case 'markdown':
 					await this.openMarkdown(documentUri, vscode.Uri.parse(link.uri), link.anchor);
@@ -395,8 +397,12 @@ export class PreviewManager implements vscode.Disposable {
 			preview.retarget(target);
 		}
 		preview.panel.reveal(undefined, true);
-		// The editor follows, once the preview found the anchor and the part of the source its section starts at.
-		this.followedAnchor = anchor === '' ? undefined : { uri: target, anchor };
+		this.scrollToAnchor(preview, anchor);
+	}
+
+	/** Scrolls the preview to an anchor; the editor follows, once the preview found the section of the anchor. */
+	private scrollToAnchor(preview: Preview, anchor: string): void {
+		this.followedAnchor = anchor === '' ? undefined : { uri: preview.uri, anchor };
 		preview.reveal({ type: 'scrollTo', anchor });
 	}
 
