@@ -37,6 +37,13 @@ export class LaunchError extends Error {
 const JAVA_SETTING = `${SECTION}.java.home`;
 /** Names another server to start in place of the bundled one, but only while the extension is developed or tested. */
 const TEST_SERVER_JAR = 'MARKDOWN_SUPPORT_TEST_SERVER_JAR';
+/** Keeps the extension from starting a server, but only while it is tested, e.g. by tests that need none. */
+export const TEST_NO_SERVER = 'MARKDOWN_SUPPORT_TEST_NO_SERVER';
+
+/** Whether the tests asked for no server; `test` says whether the extension is tested at all. */
+export function startsNoServer(test: boolean, env: NodeJS.ProcessEnv): boolean {
+	return test && (env[TEST_NO_SERVER]?.trim() ?? '') !== '';
+}
 
 /** The server bundled with the extension, or, while the extension is developed or tested, the one named instead. */
 export function serverJar(extension: ExtensionInfo, env: NodeJS.ProcessEnv): ServerJar {

@@ -3,7 +3,7 @@ import { LanguageClient, type LanguageClientOptions, type ServerOptions } from '
 import { nodeJavaEnvironment } from './java';
 import { PreviewManager, type Rendered, type RenderResult } from './preview/manager';
 import { reportStartFailure } from './report';
-import { type ExtensionInfo, prepareLaunch, serverJar } from './server';
+import { type ExtensionInfo, prepareLaunch, serverJar, startsNoServer, TEST_NO_SERVER } from './server';
 import { readSettings, SECTION } from './settings';
 
 const CLIENT_ID = SECTION;
@@ -17,6 +17,8 @@ let client: LanguageClient | undefined;
 let output: vscode.LogOutputChannel | undefined;
 let previews: PreviewManager | undefined;
 let extension: ExtensionInfo | undefined;
+/** Whether the tests asked for no server, so that the extension looks for no Java either. */
+let noServer = false;
 /** Starts and stops run one after the other, so that a restart never overtakes the start before it. */
 let pending: Promise<void> = Promise.resolve();
 
@@ -32,6 +34,7 @@ export function activate(context: vscode.ExtensionContext): MarkdownSupportApi {
 		packageJSON: context.extension.packageJSON,
 		development: context.extensionMode !== vscode.ExtensionMode.Production,
 	};
+	noServer = startsNoServer(context.extensionMode === vscode.ExtensionMode.Test, process.env);
 	output = vscode.window.createOutputChannel(NAME, { log: true });
 	const log = output;
 	previews = new PreviewManager(context.extensionUri, renderHtml, { error: (message) => log.error(message) });
@@ -69,6 +72,10 @@ async function restart(): Promise<void> {
 }
 
 async function start(): Promise<void> {
+	if (noServer) {
+		output?.info(`No language server is started, since ${TEST_NO_SERVER} is set.`);
+		return;
+	}
 	const settings = readSettings(vscode.workspace.getConfiguration(SECTION));
 	if (extension === undefined) {
 		return;
