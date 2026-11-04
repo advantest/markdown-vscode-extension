@@ -2,8 +2,16 @@ import * as vscode from 'vscode';
 import { LanguageClient, type LanguageClientOptions, type ServerOptions } from 'vscode-languageclient/node';
 import { nodeJavaEnvironment } from './java';
 import { PreviewManager, type Rendered, type RenderResult } from './preview/manager';
-import { reportStartFailure } from './report';
-import { type ExtensionInfo, prepareLaunch, serverJar, startsNoServer, TEST_NO_SERVER } from './server';
+import { reportDeclaredServerProblem, reportStartFailure, type ReportTarget } from './report';
+import {
+	chooseServer,
+	type ExtensionInfo,
+	prepareLaunch,
+	type ServerChoice,
+	type ServerJar,
+	startsNoServer,
+	TEST_NO_SERVER,
+} from './server';
 import { readSettings, SECTION } from './settings';
 
 const CLIENT_ID = SECTION;
@@ -14,6 +22,13 @@ const LAUNCH_SETTINGS = [`${SECTION}.java.home`];
 const RENDER_HTML = 'markdown/renderHtml';
 
 let client: LanguageClient | undefined;
+/** The JAR of the server that started and has not been stopped since. */
+let running: ServerJar | undefined;
+/**
+ * The server chosen when the extension started the first one. Restarts start the same, so that a declared server is
+ * never replaced, and a problem with a declaration is shown only once.
+ */
+let choice: Promise<ServerChoice> | undefined;
 let output: vscode.LogOutputChannel | undefined;
 let previews: PreviewManager | undefined;
 let extension: ExtensionInfo | undefined;
@@ -26,6 +41,8 @@ let pending: Promise<void> = Promise.resolve();
 export interface MarkdownSupportApi {
 	/** Fires when a preview shows a new content, after highlight.js and MathJax ran. */
 	readonly onDidRenderPreview: vscode.Event<Rendered>;
+	/** The JAR of the server that runs, once a start in progress is over; undefined if none runs. */
+	runningServer(): Promise<ServerJar | undefined>;
 }
 
 export function activate(context: vscode.ExtensionContext): MarkdownSupportApi {
@@ -34,6 +51,7 @@ export function activate(context: vscode.ExtensionContext): MarkdownSupportApi {
 		packageJSON: context.extension.packageJSON,
 		development: context.extensionMode !== vscode.ExtensionMode.Production,
 	};
+	choice = undefined;
 	noServer = startsNoServer(context.extensionMode === vscode.ExtensionMode.Test, process.env);
 	output = vscode.window.createOutputChannel(NAME, { log: true });
 	const log = output;
@@ -54,7 +72,13 @@ export function activate(context: vscode.ExtensionContext): MarkdownSupportApi {
 		}),
 	);
 	void schedule(start);
-	return { onDidRenderPreview: manager.onDidRender };
+	return {
+		onDidRenderPreview: manager.onDidRender,
+		runningServer: async () => {
+			await pending;
+			return running;
+		},
+	};
 }
 
 export function deactivate(): Promise<void> {
@@ -80,7 +104,7 @@ async function start(): Promise<void> {
 	if (extension === undefined) {
 		return;
 	}
-	const jar = serverJar(extension, process.env);
+	const { jar } = await chosenServer(extension);
 	let launch;
 	try {
 		launch = await prepareLaunch(jar, settings, nodeJavaEnvironment());
@@ -106,6 +130,7 @@ async function start(): Promise<void> {
 		report(error);
 		return;
 	}
+	running = jar;
 	const info = started.initializeResult?.serverInfo;
 	if (info) {
 		output?.info(`Started ${info.name}${info.version ? ' ' + info.version : ''}`);
@@ -131,6 +156,7 @@ async function renderHtml(uri: vscode.Uri): Promise<RenderResult> {
 async function stop(): Promise<void> {
 	const stopping = client;
 	client = undefined;
+	running = undefined;
 	if (stopping === undefined) {
 		return;
 	}
@@ -141,10 +167,37 @@ async function stop(): Promise<void> {
 	}
 }
 
+/**
+ * Chooses the server once: the one another installed extension declares, or the bundled one. The declarations are read
+ * from all installed extensions, whether activated or not; one without code is never activated.
+ */
+function chosenServer(info: ExtensionInfo): Promise<ServerChoice> {
+	choice ??= chooseServer(
+		info,
+		vscode.extensions.all.map((installed) => ({
+			id: installed.id,
+			extensionPath: installed.extensionPath,
+			packageJSON: installed.packageJSON as unknown,
+		})),
+		process.env,
+		nodeJavaEnvironment().isFile,
+	).then((chosen) => {
+		if (chosen.problem !== undefined) {
+			void reportDeclaredServerProblem(chosen.problem, reportTarget());
+		}
+		return chosen;
+	});
+	return choice;
+}
+
 function report(error: unknown): void {
-	void reportStartFailure(error, {
+	void reportStartFailure(error, reportTarget());
+}
+
+function reportTarget(): ReportTarget {
+	return {
 		log: (message) => output?.error(message),
 		showError: (message, ...actions) => vscode.window.showErrorMessage(message, ...actions),
 		executeCommand: (command, ...args) => vscode.commands.executeCommand(command, ...args),
-	});
+	};
 }
