@@ -338,17 +338,6 @@ export class PreviewManager implements vscode.Disposable {
 		}
 	}
 
-	/** Shows the preview of the active editor in its place, or the source of the active preview in its place. */
-	async togglePreview(): Promise<void> {
-		const preview = this.preview;
-		if (preview?.panel.active) {
-			const document = await vscode.workspace.openTextDocument(preview.uri);
-			await vscode.window.showTextDocument(document, preview.panel.viewColumn);
-			return;
-		}
-		this.openPreview();
-	}
-
 	/**
 	 * Follows a link in the preview of a document, as FluentMark does: an anchor scrolls the preview, a Markdown file
 	 * opens in the editor and the preview, another file in its default editor, a web address in a browser.

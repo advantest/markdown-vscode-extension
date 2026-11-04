@@ -232,20 +232,6 @@ describe('the preview', () => {
 		assert.ok(!(await vscode.commands.getCommands(true)).includes(toggle));
 	});
 
-	it('toggles between the source and the preview', async () => {
-		const editor = await showDocument('toggle.md', '# Toggle\n');
-
-		const rendering = nextRendering(editor.document.uri);
-		await manager.togglePreview();
-		await rendering;
-		assert.ok(previewTabs()[0]?.isActive, 'the preview is in front');
-
-		await manager.togglePreview();
-		await waitUntil(() => vscode.window.activeTextEditor?.document.uri.toString() === editor.document.uri.toString());
-		assert.ok(!previewTabs()[0]?.isActive, 'the source is in front');
-		assert.equal(previewTabs().length, 1, 'the preview stays open');
-	});
-
 	it('is updated shortly after a change', async () => {
 		const editor = await showDocument('change.md', '# Before\n');
 		let rendering = nextRendering(editor.document.uri);

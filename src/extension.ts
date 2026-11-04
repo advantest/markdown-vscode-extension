@@ -37,7 +37,6 @@ export function activate(context: vscode.ExtensionContext): MarkdownSupportApi {
 		vscode.commands.registerCommand(`${SECTION}.preview.openToSide`, (uri?: vscode.Uri) =>
 			manager.openPreviewToSide(uri),
 		),
-		vscode.commands.registerCommand(`${SECTION}.preview.toggle`, () => manager.togglePreview()),
 		vscode.commands.registerCommand(`${SECTION}.preview.showElement`, () => manager.showElement()),
 		vscode.workspace.onDidChangeConfiguration((event) => {
 			if (LAUNCH_SETTINGS.some((setting) => event.affectsConfiguration(setting))) {
