@@ -70,7 +70,7 @@ export async function prepareLaunch(
 	environment: JavaEnvironment,
 ): Promise<ServerLaunch> {
 	if (!(await environment.isFile(jar.path))) {
-		throw new LaunchError(`The JAR of ${jar.description}, does not exist: ${jar.path}`);
+		throw new LaunchError(`The JAR ${jar.path} does not exist (${jar.description}).`);
 	}
 
 	let java;
