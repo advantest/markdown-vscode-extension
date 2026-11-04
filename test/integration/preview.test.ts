@@ -220,6 +220,31 @@ describe('the preview', () => {
 		assert.equal(previewTabs().length, 1, 'the preview is left');
 	});
 
+	it('has icons of its own, for light and dark themes, on its tab and on the button that opens it', async () => {
+		const extension = vscode.extensions.getExtension(EXTENSION_ID)!;
+		const command = extension.packageJSON.contributes.commands.find(
+			(candidate: { command: string }) => candidate.command === 'markdownSupport.preview.openToSide',
+		);
+		assert.deepEqual(command.icon, {
+			light: 'images/preview-to-side-light.svg',
+			dark: 'images/preview-to-side-dark.svg',
+		});
+		const editor = await showDocument('icon.md', '# Icon\n');
+		const rendering = nextRendering(editor.document.uri);
+		manager.openPreviewToSide(editor.document.uri);
+		await rendering;
+
+		const icon = manager['preview']?.panel.iconPath as { light: vscode.Uri; dark: vscode.Uri } | undefined;
+		const image = (name: string) => vscode.Uri.joinPath(extension.extensionUri, 'images', name).toString();
+		assert.deepEqual(
+			[icon?.light.toString(), icon?.dark.toString()],
+			[image('preview-light.svg'), image('preview-dark.svg')],
+		);
+		for (const name of ['preview-to-side-light', 'preview-to-side-dark', 'preview-light', 'preview-dark']) {
+			await vscode.workspace.fs.stat(vscode.Uri.joinPath(extension.extensionUri, 'images', `${name}.svg`));
+		}
+	});
+
 	it('offers no command that replaces it with its source', async () => {
 		const contributes = vscode.extensions.getExtension(EXTENSION_ID)?.packageJSON.contributes;
 		const toggle = 'markdownSupport.preview.toggle';
