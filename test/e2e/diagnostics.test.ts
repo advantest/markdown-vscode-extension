@@ -29,21 +29,17 @@ describe('the extension with the language server markdown-ls', function () {
 	});
 
 	after(async () => {
-		const configuration = vscode.workspace.getConfiguration('markdownSupport');
-		await configuration.update('java.home', undefined, vscode.ConfigurationTarget.Global);
+		await vscode.commands.executeCommand('workbench.action.closeAllEditors');
 		if (directory) {
-			await rm(directory, { recursive: true, force: true });
+			await rm(directory, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
 		}
 	});
 
-	it('shows the diagnostics of the server once Java is configured', async () => {
+	it('shows the diagnostics of the server', async () => {
 		const file = path.join(directory!, 'broken-link.md');
 		await writeFile(file, '# Title\n\nSee [there](#nowhere).\n');
 		const uri = vscode.Uri.file(file);
 		await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(uri));
-
-		const configuration = vscode.workspace.getConfiguration('markdownSupport');
-		await configuration.update('java.home', JAVA_HOME, vscode.ConfigurationTarget.Global);
 
 		const diagnostics = await diagnosticsFrom('markdown-ls', uri);
 		assert.ok(

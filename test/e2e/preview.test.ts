@@ -53,8 +53,6 @@ describe('the preview with the language server markdown-ls', function () {
 
 	after(async () => {
 		await vscode.commands.executeCommand('workbench.action.closeAllEditors');
-		const configuration = vscode.workspace.getConfiguration('markdownSupport');
-		await configuration.update('java.home', undefined, vscode.ConfigurationTarget.Global);
 		if (directory) {
 			await rm(directory, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
 		}
@@ -69,8 +67,6 @@ describe('the preview with the language server markdown-ls', function () {
 		assert.ok(extension, `${EXTENSION_ID} is installed`);
 		const api = await extension.activate();
 
-		const configuration = vscode.workspace.getConfiguration('markdownSupport');
-		await configuration.update('java.home', JAVA_HOME, vscode.ConfigurationTarget.Global);
 		const rendering = renderingOf(api, uri);
 		await vscode.commands.executeCommand('markdownSupport.preview.openToSide');
 
