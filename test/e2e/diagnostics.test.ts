@@ -4,7 +4,8 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
-import { BUNDLED_JAR, DIAGNOSTICS_TIMEOUT, diagnosticsFrom, JAVA_HOME, SKIPPED } from './support';
+import type { MarkdownSupportApi } from '../../src/extension';
+import { BUNDLED_JAR, DIAGNOSTICS_TIMEOUT, diagnosticsFrom, EXTENSION_ID, JAVA_HOME, SKIPPED } from './support';
 
 // Runs the extension against the language server bundled with it.
 
@@ -39,6 +40,15 @@ describe('the extension with the language server markdown-ls', function () {
 			diagnostics.some((diagnostic) => diagnostic.range.start.line === 2),
 			`a diagnostic on the link in line 3: ${JSON.stringify(diagnostics)}`,
 		);
+	});
+
+	it('starts the bundled server, since no extension declares one', async () => {
+		const api = await vscode.extensions.getExtension<MarkdownSupportApi>(EXTENSION_ID)!.activate();
+
+		const running = await api.runningServer();
+
+		assert.equal(running?.path, BUNDLED_JAR);
+		assert.match(running?.description ?? '', /^markdown-ls .*, bundled with the extension$/);
 	});
 
 	it('restarts the server when the folder of Java changes', async () => {
