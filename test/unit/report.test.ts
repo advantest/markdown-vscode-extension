@@ -1,5 +1,5 @@
 import * as assert from 'node:assert/strict';
-import { reportStartFailure, type ReportTarget } from '../../src/report';
+import { reportDeclaredServerProblem, reportStartFailure, type ReportTarget } from '../../src/report';
 import { LaunchError } from '../../src/server';
 
 describe('reportStartFailure', () => {
@@ -49,6 +49,23 @@ describe('reportStartFailure', () => {
 		await reportStartFailure('broken', target);
 
 		assert.deepEqual(target.logged, ['wrong', 'broken']);
+	});
+});
+
+describe('reportDeclaredServerProblem', () => {
+	it('logs the problem and shows that the features of the declared server are missing', async () => {
+		const target = fake(undefined);
+
+		await reportDeclaredServerProblem('several extensions declare a server, only one may: a.one, b.two', target);
+
+		assert.deepEqual(target.logged, ['several extensions declare a server, only one may: a.one, b.two']);
+		assert.deepEqual(target.shown, [
+			[
+				'The language server another extension declares is not started, so the features it adds are missing: ' +
+					'several extensions declare a server, only one may: a.one, b.two. ' +
+					'The server bundled with the extension is started instead.',
+			],
+		]);
 	});
 });
 
