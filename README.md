@@ -20,9 +20,11 @@ brings its results into the editor:
 - **Java 21** or newer, to run the server. The Java installation whose folder is set in
   `markdownSupport.java.home` is taken if there is one, e.g. `/usr/lib/jvm/java-21`; otherwise the first
   Java 21 found in `JAVA_HOME` and then on the `PATH`.
-- **The JAR of `markdown-ls`**, set in `markdownSupport.server.jar`. The extension starts it with
-  `java [VM arguments] -jar <JAR>`; the libraries the JAR needs are found in the directory `lib` next
-  to it, as in the distribution of `markdown-ls`.
+
+The server `markdown-ls` comes with the extension, in its folder `server/`: the JAR and, in `lib/`, the
+libraries it needs. The extension starts it with `java -jar <JAR>` and logs which server it starts in the
+output channel "Markdown Support". Options for the Java VM, e.g. to debug the server, are taken from the
+environment variable `JAVA_TOOL_OPTIONS`, which every Java VM reads.
 
 ## Preview
 
@@ -62,26 +64,32 @@ In the preview:
 | Setting                                  | Description                                                             |
 |------------------------------------------|-------------------------------------------------------------------------|
 | `markdownSupport.java.home`              | The folder of the Java installation to run the server with.             |
-| `markdownSupport.server.jar`             | The JAR of the language server.                                         |
-| `markdownSupport.server.vmArgs`          | Options for the Java VM, e.g. `-Xmx1g`.                                 |
 | `markdownSupport.trace.server`           | Logs the messages with the server: `off`, `messages` or `verbose`.      |
 | `markdownSupport.preview.openWebLinksIn` | Where clicked web addresses open: `integratedBrowser`, `systemBrowser`. |
 
-The first three are user settings only, since they decide which program is run; changing one of them
-restarts the server. The settings editor marks a value that cannot be right, e.g. a JAR not ending in
-`.jar` or the Java executable in place of its installation folder. Whether a file exists is found out
-when the server is started: the message names the setting, and its button "Open Settings" shows that
-setting. The server's messages are shown in the output channel "Markdown Support".
+`markdownSupport.java.home` is a user setting only, since it decides which program is run; changing it
+restarts the server. The settings editor marks a value that cannot be right, e.g. the Java executable in
+place of its installation folder. Whether the folder holds a Java 21 is found out when the server is
+started: the message names the setting, and its button "Open Settings" shows that setting. The server's
+messages are shown in the output channel "Markdown Support".
 
 ## Building
 
 Node.js 22 or newer and npm are needed.
 
 ```sh
-npm ci              # installs the dependencies as locked in package-lock.json
-npm run compile     # checks the types and bundles the extension into dist/extension.js
-npm run package     # builds the VSIX file to install into VS Code
+npm ci                # installs the dependencies as locked in package-lock.json
+npm run compile       # checks the types and bundles the extension into dist/extension.js
+npm run fetch-server  # unpacks the server's distribution into server/
+npm run package       # fetches the server and builds the VSIX file to install into VS Code
 ```
+
+The version of `markdown-ls` the extension bundles is pinned in `package.json`, under
+`markdownSupport.server`, by its Maven coordinates. `npm run fetch-server` takes the distribution of
+that version, `markdown-ls-<version>-distribution.zip`, from the Maven repository named by the
+environment variable `MARKDOWN_LS_REPOSITORY`, a folder or an `http(s)` address, by default the local
+repository `~/.m2/repository`. It checks that the JAR is of the pinned version. A snapshot can only be
+taken from a folder, e.g. after `mvn install` in `markdown-ls`.
 
 ## Running
 
@@ -98,10 +106,14 @@ npm test
 runs the unit tests, the tests inside VS Code (which is downloaded into `.vscode-test/` the first
 time) and reports the coverage of both together; the HTML report is written to `coverage/html`.
 
-The end-to-end tests run the extension against the real server. They are skipped unless two
-environment variables name the server's JAR and the folder of a Java 21:
+The end-to-end tests run the extension against the server bundled with it. They are skipped unless the
+server has been fetched with `npm run fetch-server` and an environment variable names the folder of a
+Java 21:
 
 ```sh
-MARKDOWN_SUPPORT_TEST_SERVER_JAR=/path/to/markdown-ls/markdown-ls.jar
 MARKDOWN_SUPPORT_TEST_JAVA_HOME=/path/to/jdk-21
 ```
+
+While the extension runs from its sources or under test, the environment variable
+`MARKDOWN_SUPPORT_TEST_SERVER_JAR` may name another JAR of the server, e.g. one just built, to start in
+place of the bundled one. An installed extension ignores it.
