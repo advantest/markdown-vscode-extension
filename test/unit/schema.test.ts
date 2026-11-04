@@ -7,7 +7,6 @@ interface Property {
 	pattern?: string;
 	patternErrorMessage?: string;
 	markdownDescription?: string;
-	items?: { pattern?: string; patternErrorMessage?: string };
 }
 
 const manifest = JSON.parse(readFileSync(path.join(__dirname, '..', '..', '..', 'package.json'), 'utf8')) as {
@@ -24,6 +23,10 @@ function matcher(pattern: string | undefined): RegExp {
 describe('the settings schema', () => {
 	it('has no setting for the JAR of the server, which comes with the extension', () => {
 		assert.equal(properties['markdownSupport.server.jar'], undefined);
+	});
+
+	it('has no setting for VM arguments, which JAVA_TOOL_OPTIONS can give', () => {
+		assert.equal(properties['markdownSupport.server.vmArgs'], undefined);
 	});
 
 	describe('markdownSupport.java.home', () => {
@@ -60,29 +63,6 @@ describe('the settings schema', () => {
 		it('says what a valid value is, with an example', () => {
 			assert.match(property.patternErrorMessage ?? '', /folder/);
 			assert.match(property.markdownDescription ?? '', /e\.g\. `[^`]+`/);
-		});
-	});
-
-	describe('markdownSupport.server.vmArgs', () => {
-		const property = properties['markdownSupport.server.vmArgs'];
-
-		it('accepts options and argument files', () => {
-			const pattern = matcher(property.items?.pattern);
-			for (const value of ['-Xmx1g', '-Dfile.encoding=UTF-8', '@/opt/markdown-ls/vm.args']) {
-				assert.match(value, pattern);
-			}
-		});
-
-		it('rejects an item that is no option', () => {
-			const pattern = matcher(property.items?.pattern);
-			for (const value of ['', 'Xmx1g', 'other.jar']) {
-				assert.doesNotMatch(value, pattern);
-			}
-		});
-
-		it('says what a valid value is, with an example', () => {
-			assert.match(property.items?.patternErrorMessage ?? '', /-/);
-			assert.match(property.markdownDescription ?? '', /e\.g\. `-Xmx1g`/);
 		});
 	});
 });

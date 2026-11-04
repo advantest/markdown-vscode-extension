@@ -6,7 +6,6 @@ describe('The settings', () => {
 
 	for (const [key, defaultValue] of [
 		['java.home', ''],
-		['server.vmArgs', []],
 	] as const) {
 		it(`contribute markdownSupport.${key}, which only the user settings may set`, () => {
 			const inspected = configuration().inspect(key);
@@ -20,6 +19,10 @@ describe('The settings', () => {
 	it('contribute no setting for the JAR of the server, which comes with the extension', () => {
 		assert.equal(contributedProperties()['markdownSupport.server.jar'], undefined);
 		assert.equal(configuration().inspect('server.jar')?.defaultValue, undefined);
+	});
+
+	it('contribute no setting for VM arguments, which JAVA_TOOL_OPTIONS can give', () => {
+		assert.equal(contributedProperties()['markdownSupport.server.vmArgs'], undefined);
 	});
 
 	it('contribute the trace of the communication with the server, off by default', () => {

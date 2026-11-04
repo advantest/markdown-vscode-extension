@@ -44,17 +44,14 @@ describe('serverJar', () => {
 });
 
 describe('prepareLaunch', () => {
-	it('starts the server JAR with java -jar, the VM arguments before it', async () => {
+	it('starts the server JAR with java -jar and no VM arguments, which JAVA_TOOL_OPTIONS can give', async () => {
 		const launch = await prepareLaunch(
 			BUNDLED,
-			settings({ javaHome: '/jdk-21', vmArgs: ['-Xmx1g', '-ea'] }),
+			settings({ javaHome: '/jdk-21' }),
 			environment({ '/jdk-21/bin/java': PROPERTIES_21, '/ls/markdown-ls.jar': '' }),
 		);
 
-		assert.deepEqual(launch, {
-			command: '/jdk-21/bin/java',
-			args: ['-Xmx1g', '-ea', '-jar', '/ls/markdown-ls.jar'],
-		});
+		assert.deepEqual(launch, { command: '/jdk-21/bin/java', args: ['-jar', '/ls/markdown-ls.jar'] });
 	});
 
 	it('starts the server with the Java found in JAVA_HOME or on the PATH if none is set', async () => {
@@ -114,7 +111,7 @@ describe('prepareLaunch', () => {
 });
 
 function settings(values: Partial<Settings>): Settings {
-	return { javaHome: undefined, vmArgs: [], ...values };
+	return { javaHome: undefined, ...values };
 }
 function environment(
 	files: Record<string, string>,
