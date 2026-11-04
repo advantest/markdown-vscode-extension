@@ -24,3 +24,12 @@ export async function reportStartFailure(error: unknown, target: ReportTarget): 
 		await target.executeCommand('workbench.action.openSettings', `@id:${error.setting}`);
 	}
 }
+
+/** Reports why the server another extension declares is not started; the bundled one is started in its place. */
+export async function reportDeclaredServerProblem(problem: string, target: ReportTarget): Promise<void> {
+	target.log(problem);
+	await target.showError(
+		'The language server another extension declares is not started, so the features it adds are missing: ' +
+			`${problem}. The server bundled with the extension is started instead.`,
+	);
+}

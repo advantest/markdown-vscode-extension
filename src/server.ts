@@ -1,4 +1,5 @@
 import * as path from 'node:path';
+import { acceptedVersion, accepts, declaringExtensions, type InstalledExtension, readDeclaration } from './declaration';
 import { findJava, JavaNotFoundError, type JavaEnvironment } from './java';
 import { SECTION, type Settings } from './settings';
 
@@ -45,10 +46,15 @@ export function startsNoServer(test: boolean, env: NodeJS.ProcessEnv): boolean {
 	return test && (env[TEST_NO_SERVER]?.trim() ?? '') !== '';
 }
 
+function testServerJar(extension: ExtensionInfo, env: NodeJS.ProcessEnv): string | undefined {
+	const named = env[TEST_SERVER_JAR]?.trim();
+	return extension.development && named ? named : undefined;
+}
+
 /** The server bundled with the extension, or, while the extension is developed or tested, the one named instead. */
 export function serverJar(extension: ExtensionInfo, env: NodeJS.ProcessEnv): ServerJar {
-	const named = env[TEST_SERVER_JAR]?.trim();
-	if (extension.development && named) {
+	const named = testServerJar(extension, env);
+	if (named) {
 		return { path: named, description: `the server ${TEST_SERVER_JAR} names` };
 	}
 	const version = (extension.packageJSON as { markdownSupport?: { defaultServer?: { version?: unknown } } }).markdownSupport
@@ -57,6 +63,69 @@ export function serverJar(extension: ExtensionInfo, env: NodeJS.ProcessEnv): Ser
 	return {
 		path: path.join(extension.extensionPath, 'server', 'markdown-ls.jar'),
 		description: `${name}, bundled with the extension`,
+	};
+}
+
+/** The server to start, and why it is not the one another extension declares, if one does. */
+export interface ServerChoice {
+	jar: ServerJar;
+	problem?: string;
+}
+
+/**
+ * Chooses the server to start. While the extension is developed or tested, the server MARKDOWN_SUPPORT_TEST_SERVER_JAR
+ * names comes first, and no declaration is read. Otherwise it is the server exactly one installed extension declares,
+ * if that declaration is valid, its version accepted and its JAR there; the bundled server in any other case. If any
+ * extension declares a server that is not chosen, the problem says why.
+ */
+export async function chooseServer(
+	extension: ExtensionInfo,
+	installed: readonly InstalledExtension[],
+	env: NodeJS.ProcessEnv,
+	isFile: (candidate: string) => Promise<boolean>,
+): Promise<ServerChoice> {
+	const own = serverJar(extension, env);
+	if (testServerJar(extension, env)) {
+		return { jar: own };
+	}
+	const declaring = declaringExtensions(installed);
+	if (declaring.length === 0) {
+		return { jar: own };
+	}
+	if (declaring.length > 1) {
+		const ids = declaring.map((candidate) => candidate.id).join(', ');
+		return { jar: own, problem: `several extensions declare a server, only one may: ${ids}` };
+	}
+	const declaration = readDeclaration(declaring[0]);
+	if (typeof declaration === 'string') {
+		return { jar: own, problem: declaration };
+	}
+	const accepted = acceptedVersion(extension.packageJSON);
+	if (!accepted) {
+		return {
+			jar: own,
+			problem: `the extension names no version of the server it bundles, so it accepts no server ${declaration.id} declares`,
+		};
+	}
+	if (!accepts(accepted, declaration.version)) {
+		return {
+			jar: own,
+			problem:
+				`the extension ${declaration.id} declares a server with markdown-ls ${declaration.markdownLs}, ` +
+				`but only markdown-ls ${accepted.major}.x from ${accepted.major}.${accepted.minor} on is accepted`,
+		};
+	}
+	if (!(await isFile(declaration.jar))) {
+		return {
+			jar: own,
+			problem: `the JAR ${declaration.jar}, which the extension ${declaration.id} declares, does not exist`,
+		};
+	}
+	return {
+		jar: {
+			path: declaration.jar,
+			description: `markdown-ls ${declaration.markdownLs}, declared by the extension ${declaration.id}`,
+		},
 	};
 }
 
