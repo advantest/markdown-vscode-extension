@@ -272,6 +272,7 @@ class Preview {
 /** Opens the preview of Markdown documents and keeps it up to date; there is at most one, showing one document. */
 export class PreviewManager implements vscode.Disposable {
 	readonly media: vscode.Uri;
+	private readonly images: vscode.Uri;
 	private preview: Preview | undefined;
 	/** The anchor a link led to, whose section the editor of the anchor's document scrolls to as well. */
 	private followedAnchor: { readonly uri: vscode.Uri; readonly anchor: string } | undefined;
@@ -294,6 +295,7 @@ export class PreviewManager implements vscode.Disposable {
 		private readonly environment: Environment = vscode.env,
 	) {
 		this.media = vscode.Uri.joinPath(extensionUri, 'dist', 'media');
+		this.images = vscode.Uri.joinPath(extensionUri, 'images');
 		this.disposables.push(
 			vscode.workspace.onDidChangeTextDocument((event) => {
 				if (event.contentChanges.length > 0) {
@@ -470,6 +472,10 @@ export class PreviewManager implements vscode.Disposable {
 			{ enableScripts: true, enableFindWidget: true, retainContextWhenHidden: true },
 		);
 		this.preview = new Preview(this, panel, uri);
+		panel.iconPath = {
+			light: vscode.Uri.joinPath(this.images, 'preview-light.svg'),
+			dark: vscode.Uri.joinPath(this.images, 'preview-dark.svg'),
+		};
 		return this.preview;
 	}
 

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#8C8C8C" stroke-linecap="round" stroke-linejoin="round">
+  <mask id="around-eye">
+    <rect width="16" height="16" fill="#fff"/>
+    <path d="M6.8 10c2.1-4 7.1-4 9.2 0c-2.1 4-7.1 4-9.2 0z" fill="#000" stroke="#000" stroke-width="3"/>
+  </mask>
+  <g mask="url(#around-eye)">
+    <rect x="0.5" y="1.5" width="13" height="13" rx="2"/>
+    <path d="M6.5 1.5v13"/>
+    <path d="M2.5 4.5h2M2.5 7h2M2.5 9.5h2"/>
+  </g>
+  <path d="M6.8 10c2.1-4 7.1-4 9.2 0c-2.1 4-7.1 4-9.2 0z"/>
+  <circle cx="11.4" cy="10" r="1.6" fill="#8C8C8C" stroke="none"/>
+</svg>

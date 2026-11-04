@@ -33,7 +33,10 @@
         "command": "markdownSupport.preview.openToSide",
         "title": "Open Preview to the Side",
         "category": "Markdown Support",
-        "icon": "$(open-preview)"
+        "icon": {
+          "light": "images/preview-to-side-light.svg",
+          "dark": "images/preview-to-side-dark.svg"
+        }
       },
       {
         "command": "markdownSupport.preview.showElement",
