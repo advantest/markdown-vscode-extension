@@ -16,3 +16,6 @@ coverage/
 
 # Logs
 *.log
+
+# The language server, fetched by "npm run fetch-server" and bundled with the extension
+server/

@@ -21,6 +21,13 @@
     "onLanguage:markdown"
   ],
   "main": "./dist/extension.js",
+  "markdownSupport": {
+    "server": {
+      "groupId": "com.advantest.markdown",
+      "artifactId": "markdown-ls",
+      "version": "1.0.0-SNAPSHOT"
+    }
+  },
   "contributes": {
     "commands": [
       {
@@ -152,7 +159,8 @@
     "test:unit": "c8 mocha",
     "test:integration": "vscode-test --coverage --coverage-reporter json --coverage-output coverage/integration",
     "coverage": "node scripts/coverage.mjs",
-    "vscode:prepublish": "npm run check && node esbuild.mjs --production",
+    "fetch-server": "esbuild scripts/fetchServer.ts --bundle --platform=node --target=node20 --outfile=out/fetchServer.js --log-level=warning && node out/fetchServer.js",
+    "vscode:prepublish": "npm run check && npm run fetch-server && node esbuild.mjs --production",
     "package": "vsce package --no-dependencies --skip-license --allow-missing-repository"
   },
   "devDependencies": {
