@@ -39,13 +39,12 @@ changed on disk shows when the preview is updated. The preview looks the same in
 |---------------------------------------|--------------------------|-------------------------------------------------|
 | `markdownSupport.preview.open`        | Open Preview             | Opens the preview in place of the editor.       |
 | `markdownSupport.preview.openToSide`  | Open Preview to the Side | Opens the preview beside the editor.            |
-| `markdownSupport.preview.toggle`      | Toggle Preview           | Switches between the document and its preview.  |
 | `markdownSupport.preview.showElement` | Show in Preview          | Shows the element at the cursor in the preview. |
 
 "Show in Preview" outlines the element for two seconds. The commands are in the command palette under
-"Markdown Support", in the title bar of the editor and the preview, and in the context menus of the
-explorer and the editor. They have no keybindings; assign them with "Preferences: Open Keyboard
-Shortcuts".
+"Markdown Support", in the title bar of the editor, and in the context menus of the explorer and the
+editor. They have no keybindings; assign them with "Preferences: Open Keyboard Shortcuts". The preview
+has no command that replaces it with its source.
 
 In the preview:
 
