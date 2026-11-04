@@ -359,7 +359,12 @@ describe('the preview', () => {
 		);
 
 		manager.openPreviewToSide(first.document.uri);
-		await waitUntil(() => previewTabs().length === 1 && previewTabs()[0].group.viewColumn === vscode.ViewColumn.Two);
+		await waitUntil(
+			() =>
+				previewTabs().length === 1 &&
+				previewTabs()[0].group.viewColumn === vscode.ViewColumn.Two &&
+				previewTabs()[0].label === 'Preview single-first.md',
+		);
 		assert.deepEqual(
 			previewTabs().map((tab) => [tab.label, tab.group.viewColumn]),
 			[['Preview single-first.md', vscode.ViewColumn.Two]],
