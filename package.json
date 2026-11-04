@@ -22,7 +22,7 @@
   ],
   "main": "./dist/extension.js",
   "markdownSupport": {
-    "server": {
+    "defaultServer": {
       "groupId": "com.advantest.markdown",
       "artifactId": "markdown-ls",
       "version": "1.0.0-SNAPSHOT"

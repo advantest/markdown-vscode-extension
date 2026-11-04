@@ -51,8 +51,8 @@ export function serverJar(extension: ExtensionInfo, env: NodeJS.ProcessEnv): Ser
 	if (extension.development && named) {
 		return { path: named, description: `the server ${TEST_SERVER_JAR} names` };
 	}
-	const version = (extension.packageJSON as { markdownSupport?: { server?: { version?: unknown } } }).markdownSupport
-		?.server?.version;
+	const version = (extension.packageJSON as { markdownSupport?: { defaultServer?: { version?: unknown } } }).markdownSupport
+		?.defaultServer?.version;
 	const name = typeof version === 'string' ? `markdown-ls ${version}` : 'markdown-ls';
 	return {
 		path: path.join(extension.extensionPath, 'server', 'markdown-ls.jar'),

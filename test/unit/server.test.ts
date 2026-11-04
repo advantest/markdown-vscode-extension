@@ -12,7 +12,7 @@ const BUNDLED = { path: '/ls/markdown-ls.jar', description: 'markdown-ls 1.2.3, 
 describe('serverJar', () => {
 	const extension = (development: boolean) => ({
 		extensionPath: '/ext',
-		packageJSON: { markdownSupport: { server: { version: '1.2.3' } } },
+		packageJSON: { markdownSupport: { defaultServer: { version: '1.2.3' } } },
 		development,
 	});
 	const bundled = {

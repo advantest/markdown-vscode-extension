@@ -18,15 +18,15 @@ const COORDINATES = { groupId: 'org.example.md', artifactId: 'markdown-ls', vers
 
 describe('readCoordinates', () => {
 	it('reads the Maven coordinates of the server pinned in package.json', () => {
-		assert.deepEqual(readCoordinates({ markdownSupport: { server: { ...COORDINATES, other: 1 } } }), COORDINATES);
+		assert.deepEqual(readCoordinates({ markdownSupport: { defaultServer: { ...COORDINATES, other: 1 } } }), COORDINATES);
 	});
 
 	it('fails if a coordinate is missing', () => {
 		assert.throws(
-			() => readCoordinates({ markdownSupport: { server: { groupId: 'g', artifactId: 'a' } } }),
-			/markdownSupport\.server\.version/,
+			() => readCoordinates({ markdownSupport: { defaultServer: { groupId: 'g', artifactId: 'a' } } }),
+			/markdownSupport\.defaultServer\.version/,
 		);
-		assert.throws(() => readCoordinates({}), /markdownSupport\.server\.groupId/);
+		assert.throws(() => readCoordinates({}), /markdownSupport\.defaultServer\.groupId/);
 	});
 });
 

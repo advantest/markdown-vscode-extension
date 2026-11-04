@@ -85,7 +85,7 @@ npm run package       # fetches the server and builds the VSIX file to install i
 ```
 
 The version of `markdown-ls` the extension bundles is pinned in `package.json`, under
-`markdownSupport.server`, by its Maven coordinates. `npm run fetch-server` takes the distribution of
+`markdownSupport.defaultServer`, by its Maven coordinates. `npm run fetch-server` takes the distribution of
 that version, `markdown-ls-<version>-distribution.zip`, from the Maven repository named by the
 environment variable `MARKDOWN_LS_REPOSITORY`, a folder or an `http(s)` address, by default the local
 repository `~/.m2/repository`. It checks that the JAR is of the pinned version. A snapshot can only be

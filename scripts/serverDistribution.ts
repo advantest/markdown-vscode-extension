@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import * as path from 'node:path';
 import { inflateRawSync } from 'node:zlib';
 
-/** The Maven coordinates of the server's distribution, pinned in package.json under `markdownSupport.server`. */
+/** The Maven coordinates of the server's distribution, pinned in package.json under `markdownSupport.defaultServer`. */
 export interface Coordinates {
 	groupId: string;
 	artifactId: string;
@@ -27,11 +27,11 @@ const CLASSIFIER = 'distribution';
 const JAR = 'markdown-ls.jar';
 
 export function readCoordinates(packageJson: unknown): Coordinates {
-	const server = (packageJson as { markdownSupport?: { server?: Record<string, unknown> } }).markdownSupport?.server;
+	const server = (packageJson as { markdownSupport?: { defaultServer?: Record<string, unknown> } }).markdownSupport?.defaultServer;
 	const coordinate = (key: keyof Coordinates): string => {
 		const value = server?.[key];
 		if (typeof value !== 'string' || value.trim() === '') {
-			throw new Error(`package.json names no markdownSupport.server.${key}.`);
+			throw new Error(`package.json names no markdownSupport.defaultServer.${key}.`);
 		}
 		return value;
 	};
