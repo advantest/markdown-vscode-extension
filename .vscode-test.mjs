@@ -8,7 +8,6 @@ import { resolve } from 'node:path';
 // User data of the end-to-end tests, emptied before every run.
 const e2eUserData = resolve('.vscode-test/user-data-e2e');
 rmSync(e2eUserData, { recursive: true, force: true });
-
 const common = {
 	version: '1.91.0',
 	mocha: {
@@ -20,7 +19,9 @@ const common = {
 export default defineConfig([
 	{
 		...common,
+		// Without a server, so that the tests behave the same whether or not a Java 21 is found.
 		label: 'integration',
+		env: { MARKDOWN_SUPPORT_TEST_NO_SERVER: '1' },
 		files: 'out/test/integration/**/*.test.js',
 		launchArgs: ['--disable-extensions'],
 	},
