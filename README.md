@@ -26,6 +26,27 @@ libraries it needs. The extension starts it with `java -jar <JAR>` and logs whic
 output channel "Markdown Support". Options for the Java VM, e.g. to debug the server, are taken from the
 environment variable `JAVA_TOOL_OPTIONS`, which every Java VM reads.
 
+## A server another extension declares
+
+Another extension may declare a server, e.g. one that adds features to `markdown-ls`, in its
+`package.json`; it needs no code for it:
+
+```json
+"markdownSupport": {
+  "server": { "jar": "server/launcher.jar", "markdownLs": "1.2.0" }
+}
+```
+
+`jar` is relative to the folder of that extension, and `markdownLs` is the version of `markdown-ls` the
+declared server holds. Before it starts a server, the extension reads the declarations of all installed
+extensions. It starts the declared server, with `java -jar` and the same Java, if exactly one extension
+declares a server, its JAR is in that extension's folder and exists, and its version is accepted: the
+major version of the bundled server, from the minor version on that `package.json` names under
+`markdownSupport.declaredServer.minimumVersion`. Only the major and the minor version are compared, so a
+pre-release such as `1.0.0-SNAPSHOT` counts as 1.0. Without a declaration it starts the bundled server; in
+any other case as well, and it shows an error message saying why the features of the declared server are
+missing. A declared server that crashes is restarted, never replaced by the bundled one.
+
 ## Preview
 
 The preview shows the HTML the server renders from a Markdown document, with the unsaved changes. It is
@@ -110,7 +131,10 @@ The tests inside VS Code that need no server set the environment variable `MARKD
 so that the extension neither looks for Java nor starts the server; they need no Java and behave the same on
 every machine. The extension reads the variable only while it is tested.
 
-The end-to-end tests run the extension against the server bundled with it. They are skipped unless the
+The end-to-end tests run the extension against the server bundled with it. The runs `e2e-declared` and
+`e2e-several` install extensions without code next to it, which `test/stubExtensions.mjs` builds into
+`.vscode-test/stubs/` and which declare a server: one that is started in place of the bundled server, and
+two, so that the bundled server is started. They are skipped unless the
 server has been fetched with `npm run fetch-server` and an environment variable names the folder of a
 Java 21, which the test run sets in `markdownSupport.java.home` before VS Code starts:
 
@@ -120,4 +144,5 @@ MARKDOWN_SUPPORT_TEST_JAVA_HOME=/path/to/jdk-21
 
 While the extension runs from its sources or under test, the environment variable
 `MARKDOWN_SUPPORT_TEST_SERVER_JAR` may name another JAR of the server, e.g. one just built, to start in
-place of the bundled one. An installed extension ignores it.
+place of the bundled one or a declared one; no declaration is read then. An installed extension ignores it.
+`MARKDOWN_SUPPORT_TEST_NO_SERVER` ranks above both.
