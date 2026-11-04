@@ -2,7 +2,7 @@
   "name": "markdown-support",
   "displayName": "Markdown Support",
   "description": "Validation of Markdown documents, provided by the language server markdown-ls.",
-  "version": "0.0.1",
+  "version": "1.0.0-alpha",
   "publisher": "advantest",
   "private": true,
   "engines": {
