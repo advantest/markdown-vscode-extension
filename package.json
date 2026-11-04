@@ -26,6 +26,9 @@
       "groupId": "com.advantest.markdown",
       "artifactId": "markdown-ls",
       "version": "1.0.0-SNAPSHOT"
+    },
+    "declaredServer": {
+      "minimumVersion": "1.0"
     }
   },
   "contributes": {
