@@ -1,15 +1,53 @@
 import * as assert from 'node:assert/strict';
+import * as path from 'node:path';
 import type { JavaEnvironment } from '../../src/java';
-import { LaunchError, prepareLaunch } from '../../src/server';
+import { LaunchError, prepareLaunch, serverJar } from '../../src/server';
 import type { Settings } from '../../src/settings';
 
 const PROPERTIES_21 = '    java.specification.version = 21\n';
 const PROPERTIES_17 = '    java.specification.version = 17\n';
 
+const BUNDLED = { path: '/ls/markdown-ls.jar', description: 'markdown-ls 1.2.3, bundled with the extension' };
+
+describe('serverJar', () => {
+	const extension = (development: boolean) => ({
+		extensionPath: '/ext',
+		packageJSON: { markdownSupport: { server: { version: '1.2.3' } } },
+		development,
+	});
+	const bundled = {
+		path: path.join('/ext', 'server', 'markdown-ls.jar'),
+		description: 'markdown-ls 1.2.3, bundled with the extension',
+	};
+
+	it('is the server bundled with the extension, of the version package.json names', () => {
+		assert.deepEqual(serverJar(extension(false), {}), bundled);
+	});
+
+	it('is the one MARKDOWN_SUPPORT_TEST_SERVER_JAR names while the extension is developed or tested', () => {
+		assert.deepEqual(serverJar(extension(true), { MARKDOWN_SUPPORT_TEST_SERVER_JAR: ' /dev/markdown-ls.jar ' }), {
+			path: '/dev/markdown-ls.jar',
+			description: 'the server MARKDOWN_SUPPORT_TEST_SERVER_JAR names',
+		});
+		assert.deepEqual(serverJar(extension(true), { MARKDOWN_SUPPORT_TEST_SERVER_JAR: ' ' }), bundled);
+	});
+
+	it('ignores MARKDOWN_SUPPORT_TEST_SERVER_JAR in an installed extension', () => {
+		assert.deepEqual(serverJar(extension(false), { MARKDOWN_SUPPORT_TEST_SERVER_JAR: '/dev/markdown-ls.jar' }), bundled);
+	});
+
+	it('leaves the version out if package.json names none', () => {
+		const described = serverJar({ extensionPath: '/ext', packageJSON: {}, development: false }, {}).description;
+
+		assert.equal(described, 'markdown-ls, bundled with the extension');
+	});
+});
+
 describe('prepareLaunch', () => {
 	it('starts the server JAR with java -jar, the VM arguments before it', async () => {
 		const launch = await prepareLaunch(
-			settings({ javaHome: '/jdk-21', serverJar: '/ls/markdown-ls.jar', vmArgs: ['-Xmx1g', '-ea'] }),
+			BUNDLED,
+			settings({ javaHome: '/jdk-21', vmArgs: ['-Xmx1g', '-ea'] }),
 			environment({ '/jdk-21/bin/java': PROPERTIES_21, '/ls/markdown-ls.jar': '' }),
 		);
 
@@ -21,39 +59,30 @@ describe('prepareLaunch', () => {
 
 	it('starts the server with the Java found in JAVA_HOME or on the PATH if none is set', async () => {
 		const launch = await prepareLaunch(
-			settings({ serverJar: '/ls/markdown-ls.jar' }),
+			BUNDLED,
+			settings({}),
 			environment({ '/jdk-21/bin/java': PROPERTIES_21, '/ls/markdown-ls.jar': '' }, { JAVA_HOME: '/jdk-21' }),
 		);
 
 		assert.deepEqual(launch, { command: '/jdk-21/bin/java', args: ['-jar', '/ls/markdown-ls.jar'] });
 	});
 
-	it('points to the setting of the JAR if none is set', async () => {
+	it('fails, pointing to no setting, if the JAR does not exist', async () => {
 		const error = await rejection(
-			prepareLaunch(settings({ javaHome: '/jdk-21' }), environment({ '/jdk-21/bin/java': PROPERTIES_21 })),
+			prepareLaunch(BUNDLED, settings({ javaHome: '/jdk-21' }), environment({ '/jdk-21/bin/java': PROPERTIES_21 })),
 		);
 
-		assert.equal(error.setting, 'markdownSupport.server.jar');
-		assert.match(error.message, /No JAR of the language server/);
-		assert.match(error.message, /markdownSupport\.server\.jar/);
-	});
-
-	it('points to the setting of the JAR if the JAR does not exist', async () => {
-		const error = await rejection(
-			prepareLaunch(
-				settings({ javaHome: '/jdk-21', serverJar: '/missing.jar' }),
-				environment({ '/jdk-21/bin/java': PROPERTIES_21 }),
-			),
+		assert.equal(error.setting, undefined);
+		assert.equal(
+			error.message,
+			'The JAR of markdown-ls 1.2.3, bundled with the extension, does not exist: /ls/markdown-ls.jar',
 		);
-
-		assert.equal(error.setting, 'markdownSupport.server.jar');
-		assert.match(error.message, /The JAR \/missing\.jar set in markdownSupport\.server\.jar does not exist/);
 	});
 
 	it('looks for Java only once the JAR is found', async () => {
 		const env = environment({ '/jdk-21/bin/java': PROPERTIES_21 });
 
-		await rejection(prepareLaunch(settings({ javaHome: '/jdk-21', serverJar: '/missing.jar' }), env));
+		await rejection(prepareLaunch(BUNDLED, settings({ javaHome: '/jdk-21' }), env));
 
 		assert.deepEqual(env.runs, []);
 	});
@@ -61,7 +90,8 @@ describe('prepareLaunch', () => {
 	it('points to the setting of Java if no Java 21 is found', async () => {
 		const error = await rejection(
 			prepareLaunch(
-				settings({ javaHome: '/jdk-17', serverJar: '/ls/markdown-ls.jar' }),
+				BUNDLED,
+				settings({ javaHome: '/jdk-17' }),
 				environment({ '/jdk-17/bin/java': PROPERTIES_17, '/ls/markdown-ls.jar': '' }),
 			),
 		);
@@ -79,17 +109,13 @@ describe('prepareLaunch', () => {
 			return true;
 		};
 
-		await assert.rejects(
-			prepareLaunch(settings({ javaHome: '/jdk', serverJar: '/ls/markdown-ls.jar' }), failing),
-			TypeError,
-		);
+		await assert.rejects(prepareLaunch(BUNDLED, settings({ javaHome: '/jdk' }), failing), TypeError);
 	});
 });
 
 function settings(values: Partial<Settings>): Settings {
-	return { javaHome: undefined, serverJar: undefined, vmArgs: [], ...values };
+	return { javaHome: undefined, vmArgs: [], ...values };
 }
-
 function environment(
 	files: Record<string, string>,
 	env: Record<string, string> = {},

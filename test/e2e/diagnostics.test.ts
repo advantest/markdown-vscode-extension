@@ -1,15 +1,17 @@
 import * as assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 
 /*
- * Runs the extension against the real language server. It needs the server's JAR and a Java 21, named by the
- * environment variables below; without them the tests are skipped.
+ * Runs the extension against the language server bundled with it. It needs a Java 21, named by the environment
+ * variable below, and the server, fetched by "npm run fetch-server"; without them the tests are skipped.
  */
-const SERVER_JAR = process.env.MARKDOWN_SUPPORT_TEST_SERVER_JAR;
 const JAVA_HOME = process.env.MARKDOWN_SUPPORT_TEST_JAVA_HOME;
+/** The server bundled with the extension under test, whose folder is the root of this repository. */
+const BUNDLED_JAR = path.resolve(__dirname, '..', '..', '..', 'server', 'markdown-ls.jar');
 
 const DIAGNOSTICS_TIMEOUT = 60_000;
 
@@ -19,8 +21,8 @@ describe('the extension with the language server markdown-ls', function () {
 	let directory: string | undefined;
 
 	before(async function () {
-		if (!SERVER_JAR || !JAVA_HOME) {
-			console.log('    Skipped: set MARKDOWN_SUPPORT_TEST_SERVER_JAR and MARKDOWN_SUPPORT_TEST_JAVA_HOME to run these tests.');
+		if (!JAVA_HOME || !existsSync(BUNDLED_JAR)) {
+			console.log('    Skipped: set MARKDOWN_SUPPORT_TEST_JAVA_HOME and run npm run fetch-server to run these tests.');
 			this.skip();
 		}
 		directory = await mkdtemp(path.join(tmpdir(), 'markdown-support-e2e-'));
@@ -28,14 +30,13 @@ describe('the extension with the language server markdown-ls', function () {
 
 	after(async () => {
 		const configuration = vscode.workspace.getConfiguration('markdownSupport');
-		await configuration.update('server.jar', undefined, vscode.ConfigurationTarget.Global);
 		await configuration.update('java.home', undefined, vscode.ConfigurationTarget.Global);
 		if (directory) {
 			await rm(directory, { recursive: true, force: true });
 		}
 	});
 
-	it('shows the diagnostics of the server once the server is configured', async () => {
+	it('shows the diagnostics of the server once Java is configured', async () => {
 		const file = path.join(directory!, 'broken-link.md');
 		await writeFile(file, '# Title\n\nSee [there](#nowhere).\n');
 		const uri = vscode.Uri.file(file);
@@ -43,7 +44,6 @@ describe('the extension with the language server markdown-ls', function () {
 
 		const configuration = vscode.workspace.getConfiguration('markdownSupport');
 		await configuration.update('java.home', JAVA_HOME, vscode.ConfigurationTarget.Global);
-		await configuration.update('server.jar', SERVER_JAR, vscode.ConfigurationTarget.Global);
 
 		const diagnostics = await diagnosticsFrom('markdown-ls', uri);
 		assert.ok(

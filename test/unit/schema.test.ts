@@ -22,27 +22,8 @@ function matcher(pattern: string | undefined): RegExp {
 }
 
 describe('the settings schema', () => {
-	describe('markdownSupport.server.jar', () => {
-		const property = properties['markdownSupport.server.jar'];
-
-		it('accepts nothing or a path ending in .jar', () => {
-			const pattern = matcher(property.pattern);
-			for (const value of ['', '/opt/markdown-ls/markdown-ls.jar', 'C:\\ls\\markdown-ls.JAR', ' /ls.jar ']) {
-				assert.match(value, pattern);
-			}
-		});
-
-		it('rejects a folder or another file', () => {
-			const pattern = matcher(property.pattern);
-			for (const value of ['/opt/markdown-ls', '/opt/markdown-ls/lib/', 'markdown-ls.jar.zip']) {
-				assert.doesNotMatch(value, pattern);
-			}
-		});
-
-		it('says what a valid value is, with an example', () => {
-			assert.match(property.patternErrorMessage ?? '', /\.jar/);
-			assert.match(property.markdownDescription ?? '', /e\.g\. `[^`]+\.jar`/);
-		});
+	it('has no setting for the JAR of the server, which comes with the extension', () => {
+		assert.equal(properties['markdownSupport.server.jar'], undefined);
 	});
 
 	describe('markdownSupport.java.home', () => {

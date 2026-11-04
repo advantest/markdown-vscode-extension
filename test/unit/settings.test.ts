@@ -2,18 +2,16 @@ import * as assert from 'node:assert/strict';
 import { readSettings, type Configuration } from '../../src/settings';
 
 describe('readSettings', () => {
-	it('reads the Java path, the server JAR and the VM arguments', () => {
+	it('reads the Java path and the VM arguments', () => {
 		const settings = readSettings(
 			configuration({
 				'java.home': '/opt/jdk-21/bin/java',
-				'server.jar': '/opt/markdown-ls/markdown-ls.jar',
 				'server.vmArgs': ['-Xmx1g', '-Dfile.encoding=UTF-8'],
 			}),
 		);
 
 		assert.deepEqual(settings, {
 			javaHome: '/opt/jdk-21/bin/java',
-			serverJar: '/opt/markdown-ls/markdown-ls.jar',
 			vmArgs: ['-Xmx1g', '-Dfile.encoding=UTF-8'],
 		});
 	});
@@ -21,31 +19,28 @@ describe('readSettings', () => {
 	it('takes settings that are not set as absent', () => {
 		assert.deepEqual(readSettings(configuration({})), {
 			javaHome: undefined,
-			serverJar: undefined,
 			vmArgs: [],
 		});
 	});
 
-	it('takes empty and blank paths as absent', () => {
-		const settings = readSettings(configuration({ 'java.home': '', 'server.jar': '   ' }));
+	it('takes an empty or blank path as absent', () => {
+		const settings = readSettings(configuration({ 'java.home': '   ' }));
 
 		assert.equal(settings.javaHome, undefined);
-		assert.equal(settings.serverJar, undefined);
 	});
 
-	it('trims the paths', () => {
-		const settings = readSettings(configuration({ 'java.home': ' /bin/java\t', 'server.jar': '\n/ls.jar ' }));
+	it('trims the path', () => {
+		const settings = readSettings(configuration({ 'java.home': ' /bin/java\t' }));
 
 		assert.equal(settings.javaHome, '/bin/java');
-		assert.equal(settings.serverJar, '/ls.jar');
 	});
 
 	it('ignores values of the wrong type', () => {
 		const settings = readSettings(
-			configuration({ 'java.home': 21, 'server.jar': ['/ls.jar'], 'server.vmArgs': '-Xmx1g' }),
+			configuration({ 'java.home': 21, 'server.vmArgs': '-Xmx1g' }),
 		);
 
-		assert.deepEqual(settings, { javaHome: undefined, serverJar: undefined, vmArgs: [] });
+		assert.deepEqual(settings, { javaHome: undefined, vmArgs: [] });
 	});
 
 	it('drops VM arguments that are blank or no strings', () => {

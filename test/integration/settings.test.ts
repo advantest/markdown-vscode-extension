@@ -6,7 +6,6 @@ describe('The settings', () => {
 
 	for (const [key, defaultValue] of [
 		['java.home', ''],
-		['server.jar', ''],
 		['server.vmArgs', []],
 	] as const) {
 		it(`contribute markdownSupport.${key}, which only the user settings may set`, () => {
@@ -17,6 +16,11 @@ describe('The settings', () => {
 			assert.equal(contributedProperty(key).scope, 'machine');
 		});
 	}
+
+	it('contribute no setting for the JAR of the server, which comes with the extension', () => {
+		assert.equal(contributedProperties()['markdownSupport.server.jar'], undefined);
+		assert.equal(configuration().inspect('server.jar')?.defaultValue, undefined);
+	});
 
 	it('contribute the trace of the communication with the server, off by default', () => {
 		assert.equal(configuration().inspect('trace.server')?.defaultValue, 'off');
@@ -29,10 +33,13 @@ interface ContributedProperty {
 	enum?: string[];
 }
 
-function contributedProperty(key: string): ContributedProperty {
+function contributedProperties(): Record<string, ContributedProperty | undefined> {
 	const extension = vscode.extensions.getExtension('advantest.markdown-support');
-	const properties = extension?.packageJSON?.contributes?.configuration?.properties ?? {};
-	const property = properties[`markdownSupport.${key}`];
+	return extension?.packageJSON?.contributes?.configuration?.properties ?? {};
+}
+
+function contributedProperty(key: string): ContributedProperty {
+	const property = contributedProperties()[`markdownSupport.${key}`];
 	assert.ok(property, `markdownSupport.${key} is contributed in package.json`);
 	return property;
 }

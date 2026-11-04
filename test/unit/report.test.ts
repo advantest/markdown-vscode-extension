@@ -6,12 +6,22 @@ describe('reportStartFailure', () => {
 	it('shows the message of a wrong setting with a button that opens the settings editor at that setting', async () => {
 		const target = fake('Open Settings');
 
-		const message = 'The JAR /x.jar set in markdownSupport.server.jar does not exist.';
+		const message = 'No Java 21 was found in /jdk-17 set in markdownSupport.java.home.';
 
-		await reportStartFailure(new LaunchError(message, 'markdownSupport.server.jar'), target);
+		await reportStartFailure(new LaunchError(message, 'markdownSupport.java.home'), target);
 
 		assert.deepEqual(target.shown, [[message, 'Open Settings']]);
-		assert.deepEqual(target.commands, [['workbench.action.openSettings', '@id:markdownSupport.server.jar']]);
+		assert.deepEqual(target.commands, [['workbench.action.openSettings', '@id:markdownSupport.java.home']]);
+	});
+
+	it('shows a failure that no setting fixes without a button', async () => {
+		const target = fake(undefined);
+
+		await reportStartFailure(new LaunchError('The JAR /ext/server/markdown-ls.jar does not exist.'), target);
+
+		assert.deepEqual(target.shown, [
+			['The Markdown language server could not be started: The JAR /ext/server/markdown-ls.jar does not exist.'],
+		]);
 	});
 
 	it('opens nothing if the message is dismissed', async () => {
