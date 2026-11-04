@@ -4,16 +4,9 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
+import { BUNDLED_JAR, DIAGNOSTICS_TIMEOUT, diagnosticsFrom, JAVA_HOME, SKIPPED } from './support';
 
-/*
- * Runs the extension against the language server bundled with it. It needs a Java 21, named by the environment
- * variable below, and the server, fetched by "npm run fetch-server"; without them the tests are skipped.
- */
-const JAVA_HOME = process.env.MARKDOWN_SUPPORT_TEST_JAVA_HOME;
-/** The server bundled with the extension under test, whose folder is the root of this repository. */
-const BUNDLED_JAR = path.resolve(__dirname, '..', '..', '..', 'server', 'markdown-ls.jar');
-
-const DIAGNOSTICS_TIMEOUT = 60_000;
+// Runs the extension against the language server bundled with it.
 
 describe('the extension with the language server markdown-ls', function () {
 	this.timeout(DIAGNOSTICS_TIMEOUT + 10_000);
@@ -22,7 +15,7 @@ describe('the extension with the language server markdown-ls', function () {
 
 	before(async function () {
 		if (!JAVA_HOME || !existsSync(BUNDLED_JAR)) {
-			console.log('    Skipped: set MARKDOWN_SUPPORT_TEST_JAVA_HOME and run npm run fetch-server to run these tests.');
+			console.log(`    ${SKIPPED}`);
 			this.skip();
 		}
 		directory = await mkdtemp(path.join(tmpdir(), 'markdown-support-e2e-'));
@@ -63,31 +56,3 @@ describe('the extension with the language server markdown-ls', function () {
 		await diagnosticsFrom('markdown-ls', uri);
 	});
 });
-
-/** The diagnostics of the source for the document, once they are as expected: by default, once there are some. */
-function diagnosticsFrom(
-	source: string,
-	uri: vscode.Uri,
-	expected: (diagnostics: vscode.Diagnostic[]) => boolean = (diagnostics) => diagnostics.length > 0,
-): Promise<vscode.Diagnostic[]> {
-	const current = () => vscode.languages.getDiagnostics(uri).filter((diagnostic) => diagnostic.source === source);
-	return new Promise((resolve, reject) => {
-		const found = current();
-		if (expected(found)) {
-			resolve(found);
-			return;
-		}
-		const timer = setTimeout(() => {
-			listener.dispose();
-			reject(new Error(`no expected diagnostics from ${source} within ${DIAGNOSTICS_TIMEOUT} ms: ${JSON.stringify(current())}`));
-		}, DIAGNOSTICS_TIMEOUT);
-		const listener = vscode.languages.onDidChangeDiagnostics(() => {
-			const diagnostics = current();
-			if (expected(diagnostics)) {
-				clearTimeout(timer);
-				listener.dispose();
-				resolve(diagnostics);
-			}
-		});
-	});
-}
