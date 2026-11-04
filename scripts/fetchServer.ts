@@ -17,7 +17,7 @@ async function main(): Promise<void> {
 	const coordinates = readCoordinates(JSON.parse(await readFile('package.json', 'utf8')));
 	const repository = process.env.MARKDOWN_LS_REPOSITORY?.trim() || path.join(homedir(), '.m2', 'repository');
 	const location = distributionLocation(repository, coordinates);
-	const files = unpackServer(await load(location), coordinates.version);
+	const files = await unpackServer(await load(location), coordinates.version);
 
 	await rm(TARGET, { recursive: true, force: true });
 	for (const file of files) {

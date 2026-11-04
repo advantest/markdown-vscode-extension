@@ -2,7 +2,8 @@
 
 import { readFile } from 'node:fs/promises';
 import * as path from 'node:path';
-import { inflateRawSync } from 'node:zlib';
+import type { Readable } from 'node:stream';
+import * as yauzl from 'yauzl';
 
 /** The Maven coordinates of the server's distribution, pinned in package.json under `markdownSupport.defaultServer`. */
 export interface Coordinates {
@@ -20,7 +21,7 @@ export interface ServerFile {
 /** An entry of a ZIP archive; a folder's name ends in `/`. */
 export interface ZipEntry {
 	name: string;
-	read(): Buffer;
+	read(): Promise<Buffer>;
 }
 
 const CLASSIFIER = 'distribution';
@@ -63,43 +64,38 @@ export async function load(location: string): Promise<Buffer> {
 	return Buffer.from(await response.arrayBuffer());
 }
 
-/** Lists the entries of a ZIP archive; entries are stored or deflated, and the archive is not a ZIP64 one. */
-export function readZip(archive: Buffer): ZipEntry[] {
-	const end = archive.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
-	if (end < 0 || archive.length - end < 22) {
-		throw new Error('not a ZIP archive');
+/** Lists the entries of a ZIP archive. */
+export async function readZip(archive: Buffer): Promise<ZipEntry[]> {
+	let zip: yauzl.ZipFile;
+	try {
+		zip = await new Promise<yauzl.ZipFile>((resolve, reject) =>
+			yauzl.fromBuffer(archive, { lazyEntries: true }, (error, opened) => (error ? reject(error) : resolve(opened))),
+		);
+	} catch (error) {
+		throw new Error(`not a ZIP archive: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
 	}
-	const count = archive.readUInt16LE(end + 10);
-	let offset = archive.readUInt32LE(end + 16);
 	const entries: ZipEntry[] = [];
-	for (let i = 0; i < count; i++) {
-		if (archive.readUInt32LE(offset) !== 0x02014b50) {
-			throw new Error('not a ZIP archive: broken central directory');
-		}
-		const method = archive.readUInt16LE(offset + 10);
-		const size = archive.readUInt32LE(offset + 20);
-		const nameLength = archive.readUInt16LE(offset + 28);
-		const extraLength = archive.readUInt16LE(offset + 30);
-		const commentLength = archive.readUInt16LE(offset + 32);
-		const local = archive.readUInt32LE(offset + 42);
-		const name = archive.toString('utf8', offset + 46, offset + 46 + nameLength);
-		offset += 46 + nameLength + extraLength + commentLength;
-		entries.push({
-			name,
-			read: () => {
-				const start = local + 30 + archive.readUInt16LE(local + 26) + archive.readUInt16LE(local + 28);
-				const data = archive.subarray(start, start + size);
-				if (method === 0) {
-					return Buffer.from(data);
-				}
-				if (method === 8) {
-					return inflateRawSync(data);
-				}
-				throw new Error(`${name} is compressed with the unsupported method ${method}`);
-			},
+	await new Promise<void>((resolve, reject) => {
+		zip.on('entry', (entry: yauzl.Entry) => {
+			entries.push({ name: entry.fileName, read: () => readEntry(zip, entry) });
+			zip.readEntry();
 		});
-	}
+		zip.on('end', resolve);
+		zip.on('error', reject);
+		zip.readEntry();
+	});
 	return entries;
+}
+
+async function readEntry(zip: yauzl.ZipFile, entry: yauzl.Entry): Promise<Buffer> {
+	const stream = await new Promise<Readable>((resolve, reject) =>
+		zip.openReadStream(entry, (error, opened) => (error ? reject(error) : resolve(opened))),
+	);
+	const chunks: Buffer[] = [];
+	for await (const chunk of stream) {
+		chunks.push(chunk as Buffer);
+	}
+	return Buffer.concat(chunks);
 }
 
 /** Reads an attribute of the main section of a JAR's manifest. */
@@ -113,18 +109,21 @@ export function manifestAttribute(manifest: string, name: string): string | unde
  * Takes the server's JAR and the libraries next to it out of the distribution, without the distribution's own
  * folder, and checks that the JAR is of the version pinned.
  */
-export function unpackServer(distribution: Buffer, version: string): ServerFile[] {
-	const files = readZip(distribution)
+export async function unpackServer(distribution: Buffer, version: string): Promise<ServerFile[]> {
+	const selected = (await readZip(distribution))
 		.map((entry) => ({ entry, path: entry.name.replace(/^[^/]+\//, '') }))
-		.filter(({ entry, path }) => !entry.name.endsWith('/') && (path === JAR || /^lib\/[^/]+\.jar$/.test(path)))
-		.map(({ entry, path }) => ({ path, data: entry.read() }))
-		.sort((a, b) => a.path.localeCompare(b.path));
+		.filter(({ entry, path }) => !entry.name.endsWith('/') && (path === JAR || /^lib\/[^/]+\.jar$/.test(path)));
+	const files: ServerFile[] = [];
+	for (const { entry, path } of selected) {
+		files.push({ path, data: await entry.read() });
+	}
+	files.sort((a, b) => a.path.localeCompare(b.path));
 	const jar = files.find((file) => file.path === JAR);
 	if (jar === undefined) {
 		throw new Error(`The distribution holds no ${JAR}.`);
 	}
-	const manifest = readZip(jar.data).find((entry) => entry.name === 'META-INF/MANIFEST.MF');
-	const found = manifest && manifestAttribute(manifest.read().toString('utf8'), 'Implementation-Version');
+	const manifest = (await readZip(jar.data)).find((entry) => entry.name === 'META-INF/MANIFEST.MF');
+	const found = manifest && manifestAttribute((await manifest.read()).toString('utf8'), 'Implementation-Version');
 	if (found === undefined) {
 		throw new Error(`The manifest of ${JAR} names no Implementation-Version.`);
 	}
