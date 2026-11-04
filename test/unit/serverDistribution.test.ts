@@ -4,7 +4,7 @@ import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
-import { deflateRawSync } from 'node:zlib';
+import { ZipFile } from 'yazl';
 import {
 	distributionLocation,
 	load,
@@ -88,19 +88,28 @@ describe('load', () => {
 });
 
 describe('readZip', () => {
-	it('reads stored and deflated entries', () => {
-		const entries = readZip(zip({ 'a/': '', 'a/stored.txt': 'stored' }, { 'a/deflated.txt': 'deflated '.repeat(50) }));
+	it('reads stored and deflated entries', async () => {
+		const entries = await readZip(
+			await zip({ 'a/': '', 'a/stored.txt': 'stored' }, { 'a/deflated.txt': 'deflated '.repeat(50) }),
+		);
 
 		assert.deepEqual(
 			entries.map((entry) => entry.name),
 			['a/', 'a/stored.txt', 'a/deflated.txt'],
 		);
-		assert.equal(entries[1].read().toString(), 'stored');
-		assert.equal(entries[2].read().toString(), 'deflated '.repeat(50));
+		assert.equal((await entries[1].read()).toString(), 'stored');
+		assert.equal((await entries[2].read()).toString(), 'deflated '.repeat(50));
 	});
 
-	it('fails on what is not a ZIP archive', () => {
-		assert.throws(() => readZip(Buffer.from('no archive')), /not a ZIP archive/);
+	it('fails on what is not a ZIP archive', async () => {
+		await assert.rejects(readZip(Buffer.from('no archive')), /not a ZIP archive/);
+	});
+
+	it('fails on a broken entry', async () => {
+		const archive = await zip({}, { 'a.txt': 'deflated '.repeat(50) });
+		const entries = await readZip(Buffer.concat([archive.subarray(0, 40), Buffer.alloc(8), archive.subarray(48)]));
+
+		await assert.rejects(entries[0].read());
 	});
 });
 
@@ -129,7 +138,7 @@ describe('unpackServer', () => {
 		zip({
 			'META-INF/MANIFEST.MF': `Manifest-Version: 1.0\r\n${version ? `Implementation-Version: ${version}\r\n` : ''}`,
 		});
-	const distribution = (version: string | undefined) =>
+	const distribution = async (version: string | undefined) =>
 		zip({
 			'markdown-ls-1.2.3/': '',
 			'markdown-ls-1.2.3/bin/markdown-ls': 'script',
@@ -137,11 +146,11 @@ describe('unpackServer', () => {
 			'markdown-ls-1.2.3/lib/': '',
 			'markdown-ls-1.2.3/lib/one.jar': 'one',
 			'markdown-ls-1.2.3/lib/two.jar': 'two',
-			'markdown-ls-1.2.3/markdown-ls.jar': jar(version),
+			'markdown-ls-1.2.3/markdown-ls.jar': await jar(version),
 		});
 
-	it('takes the JAR and its libraries, without the folder of the distribution', () => {
-		const files = unpackServer(distribution('1.2.3'), '1.2.3');
+	it('takes the JAR and its libraries, without the folder of the distribution', async () => {
+		const files = await unpackServer(await distribution('1.2.3'), '1.2.3');
 
 		assert.deepEqual(
 			files.map((file) => [file.path, file.data.length > 0]),
@@ -154,52 +163,37 @@ describe('unpackServer', () => {
 		assert.equal(files[0].data.toString(), 'one');
 	});
 
-	it('fails if the server is of another version than the one pinned', () => {
-		assert.throws(() => unpackServer(distribution('1.2.4'), '1.2.3'), /markdown-ls 1\.2\.4.*1\.2\.3/);
-		assert.throws(() => unpackServer(distribution(undefined), '1.2.3'), /no Implementation-Version/);
+	it('fails if the server is of another version than the one pinned', async () => {
+		await assert.rejects(unpackServer(await distribution('1.2.4'), '1.2.3'), /markdown-ls 1\.2\.4.*1\.2\.3/);
+		await assert.rejects(unpackServer(await distribution(undefined), '1.2.3'), /no Implementation-Version/);
 	});
 
-	it('fails if the distribution holds no markdown-ls.jar', () => {
-		assert.throws(() => unpackServer(zip({ 'x/lib/one.jar': 'one' }), '1.2.3'), /no markdown-ls\.jar/);
+	it('fails if the distribution holds no markdown-ls.jar', async () => {
+		await assert.rejects(unpackServer(await zip({ 'x/lib/one.jar': 'one' }), '1.2.3'), /no markdown-ls\.jar/);
 	});
 });
 
-/** Builds a ZIP archive, the first entries stored, the second ones deflated; CRCs are left 0, as nothing checks them. */
-function zip(stored: Record<string, string | Buffer>, deflated: Record<string, string | Buffer> = {}): Buffer {
-	const locals: Buffer[] = [];
-	const centrals: Buffer[] = [];
-	let offset = 0;
-	const entries = [
-		...Object.entries(stored).map(([name, content]) => ({ name, content, method: 0 })),
-		...Object.entries(deflated).map(([name, content]) => ({ name, content, method: 8 })),
-	];
-	for (const { name, content, method } of entries) {
-		const raw = Buffer.from(content);
-		const data = method === 8 ? deflateRawSync(raw) : raw;
-		const fileName = Buffer.from(name);
-		const local = Buffer.alloc(30);
-		local.writeUInt32LE(0x04034b50, 0);
-		local.writeUInt16LE(method, 8);
-		local.writeUInt32LE(data.length, 18);
-		local.writeUInt32LE(raw.length, 22);
-		local.writeUInt16LE(fileName.length, 26);
-		const central = Buffer.alloc(46);
-		central.writeUInt32LE(0x02014b50, 0);
-		central.writeUInt16LE(method, 10);
-		central.writeUInt32LE(data.length, 20);
-		central.writeUInt32LE(raw.length, 24);
-		central.writeUInt16LE(fileName.length, 28);
-		central.writeUInt32LE(offset, 42);
-		locals.push(local, fileName, data);
-		centrals.push(central, fileName);
-		offset += local.length + fileName.length + data.length;
+/** Builds a ZIP archive with yazl, the first entries stored, the second ones deflated; a name ending in `/` is a folder. */
+async function zip(
+	stored: Record<string, string | Buffer>,
+	deflated: Record<string, string | Buffer> = {},
+): Promise<Buffer> {
+	const archive = new ZipFile();
+	const add = (entries: Record<string, string | Buffer>, compress: boolean) => {
+		for (const [name, content] of Object.entries(entries)) {
+			if (name.endsWith('/')) {
+				archive.addEmptyDirectory(name);
+			} else {
+				archive.addBuffer(Buffer.from(content), name, { compress });
+			}
+		}
+	};
+	add(stored, false);
+	add(deflated, true);
+	archive.end();
+	const chunks: Buffer[] = [];
+	for await (const chunk of archive.outputStream) {
+		chunks.push(chunk as Buffer);
 	}
-	const directory = Buffer.concat(centrals);
-	const end = Buffer.alloc(22);
-	end.writeUInt32LE(0x06054b50, 0);
-	end.writeUInt16LE(entries.length, 8);
-	end.writeUInt16LE(entries.length, 10);
-	end.writeUInt32LE(directory.length, 12);
-	end.writeUInt32LE(offset, 16);
-	return Buffer.concat([...locals, directory, end]);
+	return Buffer.concat(chunks);
 }
