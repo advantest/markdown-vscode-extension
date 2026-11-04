@@ -9,7 +9,7 @@ import { readSettings, SECTION } from './settings';
 const CLIENT_ID = SECTION;
 const NAME = 'Markdown Support';
 /** The settings that change the command line of the server; the server is restarted if one of them changes. */
-const LAUNCH_SETTINGS = ['java.home', 'server.vmArgs'].map((key) => `${SECTION}.${key}`);
+const LAUNCH_SETTINGS = [`${SECTION}.java.home`];
 /** The server's request for the HTML of an open document. */
 const RENDER_HTML = 'markdown/renderHtml';
 

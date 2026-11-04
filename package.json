@@ -100,17 +100,6 @@
           "patternErrorMessage": "Set the folder of the Java installation, the one that contains bin, not the Java executable or its bin folder.",
           "markdownDescription": "The folder of the Java installation that runs the language server, a JDK or JRE 21 or newer, i.e. the folder that contains `bin/java`, e.g. `/usr/lib/jvm/java-21` or `C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.5.11-hotspot`. If empty, `JAVA_HOME` and then the `PATH` are searched for a Java."
         },
-        "markdownSupport.server.vmArgs": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "pattern": "^\\s*[-@]",
-            "patternErrorMessage": "A Java VM option starts with \"-\", e.g. -Xmx1g, or names an argument file with \"@\"."
-          },
-          "default": [],
-          "scope": "machine",
-          "markdownDescription": "Options for the Java VM running the language server, one per item, each starting with `-`, e.g. `-Xmx1g`, or `@` and the path of an argument file."
-        },
         "markdownSupport.preview.openWebLinksIn": {
           "type": "string",
           "enum": [

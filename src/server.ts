@@ -54,8 +54,8 @@ export function serverJar(extension: ExtensionInfo, env: NodeJS.ProcessEnv): Ser
 }
 
 /**
- * Prepares `java [VM arguments] -jar <JAR>`. The JAR is checked first, since looking for Java runs executables and
- * is in vain without a server to start.
+ * Prepares `java -jar <JAR>`. The JAR is checked first, since looking for Java runs executables and is in vain
+ * without a server to start.
  */
 export async function prepareLaunch(
 	jar: ServerJar,
@@ -75,5 +75,5 @@ export async function prepareLaunch(
 		}
 		throw error;
 	}
-	return { command: java.executable, args: [...settings.vmArgs, '-jar', jar.path] };
+	return { command: java.executable, args: ['-jar', jar.path] };
 }
