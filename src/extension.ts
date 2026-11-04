@@ -3,19 +3,20 @@ import { LanguageClient, type LanguageClientOptions, type ServerOptions } from '
 import { nodeJavaEnvironment } from './java';
 import { PreviewManager, type Rendered, type RenderResult } from './preview/manager';
 import { reportStartFailure } from './report';
-import { prepareLaunch } from './server';
+import { type ExtensionInfo, prepareLaunch, serverJar } from './server';
 import { readSettings, SECTION } from './settings';
 
 const CLIENT_ID = SECTION;
 const NAME = 'Markdown Support';
 /** The settings that change the command line of the server; the server is restarted if one of them changes. */
-const LAUNCH_SETTINGS = ['java.home', 'server.jar', 'server.vmArgs'].map((key) => `${SECTION}.${key}`);
+const LAUNCH_SETTINGS = ['java.home', 'server.vmArgs'].map((key) => `${SECTION}.${key}`);
 /** The server's request for the HTML of an open document. */
 const RENDER_HTML = 'markdown/renderHtml';
 
 let client: LanguageClient | undefined;
 let output: vscode.LogOutputChannel | undefined;
 let previews: PreviewManager | undefined;
+let extension: ExtensionInfo | undefined;
 /** Starts and stops run one after the other, so that a restart never overtakes the start before it. */
 let pending: Promise<void> = Promise.resolve();
 
@@ -26,6 +27,11 @@ export interface MarkdownSupportApi {
 }
 
 export function activate(context: vscode.ExtensionContext): MarkdownSupportApi {
+	extension = {
+		extensionPath: context.extensionPath,
+		packageJSON: context.extension.packageJSON,
+		development: context.extensionMode !== vscode.ExtensionMode.Production,
+	};
 	output = vscode.window.createOutputChannel(NAME, { log: true });
 	const log = output;
 	previews = new PreviewManager(context.extensionUri, renderHtml, { error: (message) => log.error(message) });
@@ -64,14 +70,18 @@ async function restart(): Promise<void> {
 
 async function start(): Promise<void> {
 	const settings = readSettings(vscode.workspace.getConfiguration(SECTION));
+	if (extension === undefined) {
+		return;
+	}
+	const jar = serverJar(extension, process.env);
 	let launch;
 	try {
-		launch = await prepareLaunch(settings, nodeJavaEnvironment());
+		launch = await prepareLaunch(jar, settings, nodeJavaEnvironment());
 	} catch (error) {
 		report(error);
 		return;
 	}
-	output?.info(`Starting the language server: ${launch.command} ${launch.args.join(' ')}`);
+	output?.info(`Starting ${jar.description}: ${launch.command} ${launch.args.join(' ')}`);
 
 	const serverOptions: ServerOptions = { command: launch.command, args: launch.args };
 	const clientOptions: LanguageClientOptions = {
@@ -88,6 +98,10 @@ async function start(): Promise<void> {
 	} catch (error) {
 		report(error);
 		return;
+	}
+	const info = started.initializeResult?.serverInfo;
+	if (info) {
+		output?.info(`Started ${info.name}${info.version ? ' ' + info.version : ''}`);
 	}
 	previews?.refreshAll();
 }

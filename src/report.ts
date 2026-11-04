@@ -16,7 +16,7 @@ const OPEN_SETTINGS = 'Open Settings';
 export async function reportStartFailure(error: unknown, target: ReportTarget): Promise<void> {
 	const message = error instanceof Error ? error.message : String(error);
 	target.log(message);
-	if (!(error instanceof LaunchError)) {
+	if (!(error instanceof LaunchError) || error.setting === undefined) {
 		await target.showError(`The Markdown language server could not be started: ${message}`);
 		return;
 	}
