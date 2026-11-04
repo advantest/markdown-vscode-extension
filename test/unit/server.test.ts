@@ -87,7 +87,18 @@ describe('prepareLaunch', () => {
 		assert.equal(error.setting, undefined);
 		assert.equal(
 			error.message,
-			'The JAR of markdown-ls 1.2.3, bundled with the extension, does not exist: /ls/markdown-ls.jar',
+			'The JAR /ls/markdown-ls.jar does not exist (markdown-ls 1.2.3, bundled with the extension).',
+		);
+	});
+
+	it('names the server MARKDOWN_SUPPORT_TEST_SERVER_JAR names if its JAR does not exist', async () => {
+		const named = { path: '/dev/markdown-ls.jar', description: 'the server MARKDOWN_SUPPORT_TEST_SERVER_JAR names' };
+
+		const error = await rejection(prepareLaunch(named, settings({}), environment({})));
+
+		assert.equal(
+			error.message,
+			'The JAR /dev/markdown-ls.jar does not exist (the server MARKDOWN_SUPPORT_TEST_SERVER_JAR names).',
 		);
 	});
 
