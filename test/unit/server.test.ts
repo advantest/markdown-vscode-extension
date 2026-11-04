@@ -1,7 +1,7 @@
 import * as assert from 'node:assert/strict';
 import * as path from 'node:path';
 import type { JavaEnvironment } from '../../src/java';
-import { LaunchError, prepareLaunch, serverJar } from '../../src/server';
+import { LaunchError, prepareLaunch, serverJar, startsNoServer } from '../../src/server';
 import type { Settings } from '../../src/settings';
 
 const PROPERTIES_21 = '    java.specification.version = 21\n';
@@ -40,6 +40,21 @@ describe('serverJar', () => {
 		const described = serverJar({ extensionPath: '/ext', packageJSON: {}, development: false }, {}).description;
 
 		assert.equal(described, 'markdown-ls, bundled with the extension');
+	});
+});
+
+describe('startsNoServer', () => {
+	it('is true under test if MARKDOWN_SUPPORT_TEST_NO_SERVER is set', () => {
+		assert.equal(startsNoServer(true, { MARKDOWN_SUPPORT_TEST_NO_SERVER: '1' }), true);
+	});
+
+	it('is false if MARKDOWN_SUPPORT_TEST_NO_SERVER is not set or blank', () => {
+		assert.equal(startsNoServer(true, {}), false);
+		assert.equal(startsNoServer(true, { MARKDOWN_SUPPORT_TEST_NO_SERVER: ' ' }), false);
+	});
+
+	it('ignores MARKDOWN_SUPPORT_TEST_NO_SERVER unless the extension is tested', () => {
+		assert.equal(startsNoServer(false, { MARKDOWN_SUPPORT_TEST_NO_SERVER: '1' }), false);
 	});
 });
 
