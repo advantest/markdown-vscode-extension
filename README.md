@@ -106,9 +106,13 @@ npm test
 runs the unit tests, the tests inside VS Code (which is downloaded into `.vscode-test/` the first
 time) and reports the coverage of both together; the HTML report is written to `coverage/html`.
 
+The tests inside VS Code that need no server set the environment variable `MARKDOWN_SUPPORT_TEST_NO_SERVER`,
+so that the extension neither looks for Java nor starts the server; they need no Java and behave the same on
+every machine. The extension reads the variable only while it is tested.
+
 The end-to-end tests run the extension against the server bundled with it. They are skipped unless the
 server has been fetched with `npm run fetch-server` and an environment variable names the folder of a
-Java 21:
+Java 21, which the test run sets in `markdownSupport.java.home` before VS Code starts:
 
 ```sh
 MARKDOWN_SUPPORT_TEST_JAVA_HOME=/path/to/jdk-21
