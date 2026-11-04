@@ -220,6 +220,18 @@ describe('the preview', () => {
 		assert.equal(previewTabs().length, 1, 'the preview is left');
 	});
 
+	it('offers no command that replaces it with its source', async () => {
+		const contributes = vscode.extensions.getExtension(EXTENSION_ID)?.packageJSON.contributes;
+		const toggle = 'markdownSupport.preview.toggle';
+		assert.deepEqual(
+			contributes.menus['editor/title'].filter((item: { when?: string }) => item.when?.includes(VIEW_TYPE)),
+			[],
+			'the preview has no button in its title bar',
+		);
+		assert.ok(!contributes.commands.some((command: { command: string }) => command.command === toggle));
+		assert.ok(!(await vscode.commands.getCommands(true)).includes(toggle));
+	});
+
 	it('toggles between the source and the preview', async () => {
 		const editor = await showDocument('toggle.md', '# Toggle\n');
 
