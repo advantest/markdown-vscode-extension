@@ -19,10 +19,13 @@ brings its results into the editor:
 
 - **Java 21** or newer, to run the server. The Java installation whose folder is set in
   `markdownSupport.java.home` is taken if there is one, e.g. `/usr/lib/jvm/java-21`; otherwise the first
-  Java 21 found in `JAVA_HOME` and then on the `PATH`.
+  Java 21 found in `JAVA_HOME` and then on the `PATH`. On Windows, the path of the Java installation may
+  hold only characters of the ANSI code page, e.g. Windows-1252; Java does not start from a folder
+  named with others, e.g. Greek or Japanese ones.
 
 The server `markdown-ls` comes with the extension, in its folder `server/`: the JAR and, in `lib/`, the
-libraries it needs. The extension starts it with `java -jar <JAR>` and logs which server it starts in the
+libraries it needs. The extension starts it with `java -jar <JAR file name>` in the folder of the JAR, so
+that the path to it may hold any character, and logs which server it starts in the
 output channel "Markdown Support". Options for the Java VM, e.g. to debug the server, are taken from the
 environment variable `JAVA_TOOL_OPTIONS`, which every Java VM reads.
 
@@ -131,7 +134,8 @@ The tests inside VS Code that need no server set the environment variable `MARKD
 so that the extension neither looks for Java nor starts the server; they need no Java and behave the same on
 every machine. The extension reads the variable only while it is tested.
 
-The end-to-end tests run the extension against the server bundled with it. The runs `e2e-declared` and
+The end-to-end tests run the extension against the server bundled with it. The run `e2e-non-ansi` starts a
+copy of it in a folder named with Greek and Japanese characters. The runs `e2e-declared` and
 `e2e-several` install extensions without code next to it, which `test/stubExtensions.mjs` builds into
 `.vscode-test/stubs/` and which declare a server: one that is started in place of the bundled server, and
 two, so that the bundled server is started. They are skipped unless the
