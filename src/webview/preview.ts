@@ -4,7 +4,7 @@
  * images zoom. A Ctrl- or Cmd-click on an element leads to its source.
  */
 import { followLink } from '../preview/linkClick';
-import type { ElementStyle, FromPage, PageStyle, ToPage } from '../preview/messages';
+import type { ElementStyle, FromPage, PageContent, PageStyle, ToPage } from '../preview/messages';
 
 interface VsCodeApi {
 	postMessage(message: FromPage): void;
@@ -101,7 +101,26 @@ async function refresh(version: number, sources: readonly string[]): Promise<voi
 		images: sources,
 		imageWidths: images.map((image) => image.naturalWidth),
 		style: pageStyle(),
+		content: pageContent(),
 	});
+}
+
+function pageContent(): PageContent {
+	return {
+		text: app.innerText,
+		links: Array.from(app.querySelectorAll('a[href]'), (link) => ({
+			text: (link as HTMLElement).innerText.trim(),
+			href: link.getAttribute('href') ?? '',
+		})),
+		tables: Array.from(app.querySelectorAll('table'), (table) => ({
+			headers: Array.from(table.querySelectorAll('thead th'), (cell) => (cell as HTMLElement).innerText.trim()),
+			rows: table.querySelectorAll('tbody tr').length,
+		})),
+		inlineCode: app.querySelectorAll(':not(pre) > code').length,
+		codeBlocks: app.querySelectorAll('pre > code').length,
+		inlineMath: app.querySelectorAll('mjx-container:not([display="true"])').length,
+		displayMath: app.querySelectorAll('mjx-container[display="true"]').length,
+	};
 }
 
 /** Settles once the image is loaded or failed to load. */

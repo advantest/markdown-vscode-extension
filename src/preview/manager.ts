@@ -2,7 +2,7 @@ import { posix } from 'node:path';
 import * as vscode from 'vscode';
 import { SECTION } from '../settings';
 import { resolveLink } from './links';
-import type { FromPage, PageStyle, ScrollToMessage, ShowElementMessage, ToPage } from './messages';
+import type { FromPage, PageContent, PageStyle, ScrollToMessage, ShowElementMessage, ToPage } from './messages';
 import { previewPage } from './page';
 import { fileSystemRoots } from './roots';
 
@@ -34,6 +34,7 @@ export interface Rendered {
 	readonly images: readonly string[];
 	readonly imageWidths: readonly number[];
 	readonly style: PageStyle;
+	readonly content: PageContent;
 }
 
 /** A preview scrolled to an anchor, or did not find it. */
@@ -237,6 +238,7 @@ class Preview {
 					images: message.images,
 					imageWidths: message.imageWidths,
 					style: message.style,
+					content: message.content,
 				};
 				// Reported once the images are noted, so that an image changed on disk afterwards is noted as changed.
 				void this.noteImages(message.images).then(() => this.manager.rendered(rendered));

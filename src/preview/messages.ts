@@ -48,6 +48,26 @@ export interface RenderedMessage {
 	readonly imageWidths: readonly number[];
 	/** How the page looks. */
 	readonly style: PageStyle;
+	/** What the page shows. */
+	readonly content: PageContent;
+}
+
+/** What the page shows, as the elements and the text a reader sees. */
+export interface PageContent {
+	/** The text as shown, without what is hidden. */
+	readonly text: string;
+	/** The links, their targets as written in the HTML. */
+	readonly links: readonly { readonly text: string; readonly href: string }[];
+	/** The tables: the texts of their header cells and the number of their other rows. */
+	readonly tables: readonly { readonly headers: readonly string[]; readonly rows: number }[];
+	/** The number of code elements outside of a code block. */
+	readonly inlineCode: number;
+	/** The number of code blocks. */
+	readonly codeBlocks: number;
+	/** The number of formulas typeset in a line. */
+	readonly inlineMath: number;
+	/** The number of formulas typeset in display mode. */
+	readonly displayMath: number;
 }
 
 /** A part of the computed style of an element. */
