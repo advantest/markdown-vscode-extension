@@ -77,6 +77,8 @@ describe('the preview with the language server markdown-ls', function () {
 			await mkdir(path.join(directory!, 'images'));
 			await writeFile(path.join(directory!, 'images', 'bitmap.png'), Buffer.from(PNG, 'base64'));
 			await writeFile(path.join(directory!, 'images', 'drawing.svg'), SVG);
+			await mkdir(path.join(directory!, 'diagrams'));
+			await writeFile(path.join(directory!, 'diagrams', 'classes.puml'), PUML);
 			await writeFile(path.join(directory!, 'other.md'), '# Other\n');
 			const file = path.join(directory!, 'docs', 'content.md');
 			await writeFile(file, CONTENT);
@@ -114,12 +116,62 @@ describe('the preview with the language server markdown-ls', function () {
 				['a web page', 'https://example.com/page'],
 				['https://example.org/', 'https://example.org/'],
 				['a reference', '../other.md#other'],
+				['1', '#fn-1'],
+				['the section', '#own-anchor'],
+				['↩', '#fnref-1'],
 			]);
 		});
 
+		it('finds the target of every link within the page', () => {
+			for (const link of rendered.content.links.filter((link) => link.href.startsWith('#'))) {
+				assert.ok(rendered.content.ids.includes(link.href.slice(1)), `${link.href} is in the page`);
+			}
+		});
+
+		it('gives the headings their explicit anchors', () => {
+			assert.ok(rendered.content.ids.includes('rendering'));
+			assert.ok(rendered.content.ids.includes('own-anchor'));
+			assert.doesNotMatch(rendered.content.text, /\{#/, 'no anchor is shown in its source');
+		});
+
+		it('resolves the reference link and shows no definition', () => {
+			assert.doesNotMatch(rendered.content.text, /\[other\]|The other document/);
+		});
+
+		it('shows the footnote reference and the footnote', () => {
+			assert.ok(rendered.content.links.some((link) => link.href === '#fn-1'), 'the reference links to the footnote');
+			assert.ok(rendered.content.ids.includes('fn-1'), 'the footnote is in the page');
+			assert.match(rendered.content.text, /The footnote text\./);
+			assert.doesNotMatch(rendered.content.text, /\[\^note\]/, 'no footnote is shown in its source');
+		});
+
+		it('shows the HTML block with the Markdown inside it rendered', () => {
+			assert.equal(rendered.content.elements.details, 1, 'one details element');
+			assert.equal(rendered.content.elements.summary, 1, 'one summary element');
+			assert.equal(rendered.content.elements.strong, 1, 'the bold text inside it');
+			assert.doesNotMatch(rendered.content.text, /\*\*|<details>/);
+		});
+
+		it('leaves text that looks like a ticket number as text', () => {
+			assert.match(rendered.content.text, /The ticket HMR-122 stays text\./);
+			assert.ok(!rendered.content.links.some((link) => link.text.includes('HMR-122')), 'HMR-122 is no link');
+		});
+
 		it('draws the PlantUML code block as an SVG figure', () => {
-			assert.equal(rendered.figures, 1, 'one figure holding an SVG');
+			assert.ok(
+				rendered.content.figures.some((figure) => /Alice.*Bob/s.test(figure)),
+				'a figure draws the diagram of the code block',
+			);
 			assert.doesNotMatch(rendered.content.text, /@startuml|Alice -> Bob/, 'the source of the diagram is not shown');
+		});
+
+		it('draws the image of a PlantUML file as an SVG figure, not as an image', () => {
+			assert.ok(rendered.images.every((image) => !image.endsWith('.puml')), 'no image of the diagram file');
+			assert.ok(
+				rendered.content.figures.some((figure) => figure.includes('Shown')),
+				'a figure draws the diagram of the file',
+			);
+			assert.equal(rendered.figures, 2, 'one figure each for the code block and the diagram file');
 		});
 
 		it('shows no comment', () => {
@@ -150,20 +202,40 @@ const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAgAAAAECAIAAAA8r+mnAAAAEUlEQVR4nGM4YSOCFTF
 const PNG_WIDTH = 8;
 const SVG_WIDTH = 40;
 const SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="${SVG_WIDTH}" height="20"><rect width="40" height="20" fill="teal"/></svg>`;
+const PUML = ['@startuml', 'class Shown', '@enduml', ''].join('\n');
 
 const CONTENT = [
-	'# Rendering',
+	'# Rendering {#rendering}',
 	'',
 	'![A bitmap](../images/bitmap.png)',
 	'',
 	'![A drawing](../images/drawing.svg)',
 	'',
+	'![A diagram](../diagrams/classes.puml)',
+	'',
 	'Links to [another document](../other.md), [a heading](#rendering), [a web page](https://example.com/page),',
 	'<https://example.org/> and [a reference][other].',
 	'',
-	'[other]: ../other.md#other',
+	'[other]: ../other.md#other "The other document"',
 	'',
 	'<!-- a comment nobody sees -->',
+	'',
+	'<details>',
+	'<summary>More</summary>',
+	'',
+	'Some **bold** text inside.',
+	'',
+	'</details>',
+	'',
+	'A claim[^note] with a footnote.',
+	'',
+	'[^note]: The footnote text.',
+	'',
+	'The ticket HMR-122 stays text.',
+	'',
+	'## A section with an anchor {#own-anchor}',
+	'',
+	'A link to [the section](#own-anchor).',
 	'',
 	'| Fruit | Price |',
 	'|-------|------:|',
