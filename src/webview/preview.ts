@@ -11,8 +11,8 @@ interface VsCodeApi {
 }
 
 interface MathJaxApi {
-	typeset?: () => void;
-	typesetClear?: () => void;
+	typesetPromise?: (elements?: Element[]) => Promise<unknown>;
+	typesetClear?: (elements?: Element[]) => void;
 	startup?: { promise?: Promise<unknown> };
 }
 
@@ -51,6 +51,12 @@ const mathJaxReady: Promise<unknown> = new Promise<void>((resolve) => {
 	.then(() => window.MathJax?.startup?.promise)
 	.catch((error: unknown) => console.error(error));
 
+/**
+ * The typesetting of the latest content, each after the one before, as MathJax requires. The promise is needed: a
+ * command such as \color makes MathJax load an extension first, which the synchronous typeset cannot wait for.
+ */
+let typesetting: Promise<unknown> = mathJaxReady;
+
 /** Adds the stamps to the images changed on disk; returns the addresses of all images as they were. */
 function stampImages(stamps: ReadonlyMap<string, string>): string[] {
 	return Array.from(app.querySelectorAll('img'), (image) => {
@@ -70,15 +76,19 @@ async function refresh(version: number, sources: readonly string[]): Promise<voi
 		hljs.highlightElement(block);
 	}
 	const mathJax = window.MathJax;
-	if (typeof mathJax?.typeset === 'function' && typeof mathJax.typesetClear === 'function') {
-		mathJax.typesetClear();
-		mathJax.typeset();
+	if (typeof mathJax?.typesetPromise === 'function' && typeof mathJax.typesetClear === 'function') {
+		typesetting = typesetting
+			.then(() => {
+				mathJax.typesetClear?.();
+				return mathJax.typesetPromise?.();
+			})
+			.catch((error: unknown) => console.error(error));
 	}
 	// FluentMark's updateImages: makes the new images zoomable.
 	reloadLocalImages();
 	refreshImages();
 	const images = Array.from(app.querySelectorAll('img'));
-	await Promise.all([mathJaxReady, ...images.map(loaded)]);
+	await Promise.all([mathJaxReady, typesetting, ...images.map(loaded)]);
 	if (version !== shownVersion) {
 		return;
 	}
