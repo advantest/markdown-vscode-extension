@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
 import { LanguageClient, type LanguageClientOptions, type ServerOptions } from 'vscode-languageclient/node';
+import { ENVIRONMENT_REQUEST, type EnvironmentAnswer, type ServerEnvironment } from './environment';
+import { DEPENDENCIES_VIEW, ENVIRONMENT_SCHEME, EnvironmentViews, PLANTUML_VIEW } from './environmentViews';
 import { nodeJavaEnvironment } from './java';
 import { PreviewManager, type Rendered, type RenderResult } from './preview/manager';
 import { reportDeclaredServerProblem, reportStartFailure, type ReportTarget } from './report';
@@ -31,6 +33,7 @@ let running: ServerJar | undefined;
 let choice: Promise<ServerChoice> | undefined;
 let output: vscode.LogOutputChannel | undefined;
 let previews: PreviewManager | undefined;
+let environmentViews: EnvironmentViews | undefined;
 let extension: ExtensionInfo | undefined;
 /** Whether the tests asked for no server, so that the extension looks for no Java either. */
 let noServer = false;
@@ -57,6 +60,8 @@ export function activate(context: vscode.ExtensionContext): MarkdownSupportApi {
 	const log = output;
 	previews = new PreviewManager(context.extensionUri, renderHtml, { error: (message) => log.error(message) });
 	const manager = previews;
+	const views = new EnvironmentViews(askEnvironment);
+	environmentViews = views;
 	context.subscriptions.push(
 		output,
 		manager,
@@ -65,6 +70,10 @@ export function activate(context: vscode.ExtensionContext): MarkdownSupportApi {
 			manager.openPreviewToSide(uri),
 		),
 		vscode.commands.registerCommand(`${SECTION}.preview.showElement`, () => manager.showElement()),
+		views,
+		vscode.workspace.registerTextDocumentContentProvider(ENVIRONMENT_SCHEME, views),
+		vscode.commands.registerCommand(`${SECTION}.environment.showPlantUml`, () => views.show(PLANTUML_VIEW)),
+		vscode.commands.registerCommand(`${SECTION}.environment.showDependencies`, () => views.show(DEPENDENCIES_VIEW)),
 		vscode.workspace.onDidChangeConfiguration((event) => {
 			if (LAUNCH_SETTINGS.some((setting) => event.affectsConfiguration(setting))) {
 				void schedule(restart);
@@ -93,6 +102,8 @@ function schedule(step: () => Promise<void>): Promise<void> {
 async function restart(): Promise<void> {
 	await stop();
 	await start();
+	// The views of the server that ran show what the new one runs with, or that none runs.
+	environmentViews?.refreshAll();
 }
 
 async function start(): Promise<void> {
@@ -139,6 +150,20 @@ async function start(): Promise<void> {
 		output?.info(`Started ${info.name}${info.version ? ' ' + info.version : ''}`);
 	}
 	previews?.refreshAll();
+}
+
+async function askEnvironment(): Promise<EnvironmentAnswer> {
+	// A start or restart in progress is waited for.
+	await pending;
+	const running = client;
+	if (running === undefined || !running.isRunning()) {
+		return { notRunning: true };
+	}
+	try {
+		return { environment: await running.sendRequest<ServerEnvironment>(ENVIRONMENT_REQUEST) };
+	} catch (error) {
+		return { error: error instanceof Error ? error.message : String(error) };
+	}
 }
 
 async function renderHtml(uri: vscode.Uri): Promise<RenderResult> {

@@ -52,6 +52,16 @@
         "command": "markdownSupport.preview.showElement",
         "title": "Show in Preview",
         "category": "Markdown Support"
+      },
+      {
+        "command": "markdownSupport.environment.showPlantUml",
+        "title": "Show PlantUML and Graphviz",
+        "category": "Markdown Support"
+      },
+      {
+        "command": "markdownSupport.environment.showDependencies",
+        "title": "Show Dependencies",
+        "category": "Markdown Support"
       }
     ],
     "menus": {
@@ -107,7 +117,7 @@
           "type": "string",
           "default": "",
           "scope": "machine-overridable",
-          "markdownDescription": "The path of Graphviz's `dot` executable, which PlantUML draws most diagrams with, e.g. `/usr/bin/dot` or `C:\\Program Files\\Graphviz\\bin\\dot.exe`. If empty, the environment variable `GRAPHVIZ_DOT` and then the usual places are searched."
+          "markdownDescription": "The path of Graphviz's `dot` executable, which PlantUML draws most diagrams with, e.g. `/usr/bin/dot` or `C:\\Program Files\\Graphviz\\bin\\dot.exe`. If empty, the environment variable `GRAPHVIZ_DOT` and then the usual places are searched.\n\nWhat the language server runs with: [PlantUML and Graphviz](command:markdownSupport.environment.showPlantUml), [Dependencies](command:markdownSupport.environment.showDependencies)."
         },
         "markdownSupport.preview.openWebLinksIn": {
           "type": "string",
