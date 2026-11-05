@@ -97,6 +97,24 @@ describe('the preview', () => {
 		);
 	});
 
+	it('typesets a formula whose command MathJax loads only when it meets it, e.g. \\color', async () => {
+		const editor = await showDocument('color.md', 'any');
+		renderer = async () => ({ version: editor.document.version, html: '<p>Started: $x^2$</p>' });
+		let rendering = nextRendering(editor.document.uri);
+		manager.openPreviewToSide(editor.document.uri);
+		assert.equal((await rendering).math, 1, 'MathJax has started');
+
+		renderer = async () => ({
+			version: editor.document.version,
+			html: '<p>In-line formula: $n! = \\prod_{\\color{red}{i=1..n}}i$</p><p>$$\\sum_{i=1}^{n}=\\frac{n(n+1)}{2}$$</p>',
+		});
+		rendering = nextRendering(editor.document.uri, (rendered) => rendered.version === editor.document.version);
+		await editor.edit((edit) => edit.insert(new vscode.Position(0, 0), '\n'));
+		const rendered = await rendering;
+
+		assert.equal(rendered.math, 2, 'both formulas typeset');
+	});
+
 	it('resolves relative images against the folder of the document', async () => {
 		const editor = await showDocument('image.md', 'any');
 		renderer = async () => ({ version: editor.document.version, html: '<p><img src="pictures/a.png"></p>' });
