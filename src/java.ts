@@ -18,6 +18,8 @@ export interface JavaEnvironment {
 	 * Fails if it cannot be started.
 	 */
 	run(executable: string, args: string[]): Promise<string>;
+	/** The ANSI code page of Windows, e.g. 1252; undefined on other systems or where it cannot be read. */
+	codePage(): Promise<number | undefined>;
 }
 
 /** A Java executable that is new enough to run the server. */
@@ -58,7 +60,7 @@ export async function findJava(configuredHome: string | undefined, environment: 
 	}
 
 	const found: string[] = [];
-	let nonAnsi = false;
+	const cannotStart: string[] = [];
 	for (const executable of candidates(environment)) {
 		if (!(await environment.isFile(executable))) {
 			continue;
@@ -69,7 +71,7 @@ export async function findJava(configuredHome: string | undefined, environment: 
 			return { executable, version };
 		}
 		if (version === undefined && startsNotFromNonAnsiPath(executable, output, environment)) {
-			nonAnsi = true;
+			cannotStart.push(executable);
 			found.push(`${executable} (cannot start)`);
 			continue;
 		}
@@ -82,9 +84,10 @@ export async function findJava(configuredHome: string | undefined, environment: 
 			`No Java was found in JAVA_HOME or on the PATH. The Markdown language server needs Java ${MINIMUM_JAVA_VERSION} or newer. ${advice}`,
 		);
 	}
+	const explanation = cannotStart.length === 0 ? '' : `${await nonAnsiExplanation(cannotStart, environment)} `;
 	throw new JavaNotFoundError(
 		`No Java ${MINIMUM_JAVA_VERSION} or newer was found in JAVA_HOME or on the PATH, only ${found.join(', ')}. ` +
-			`${nonAnsi ? NON_ANSI_EXPLANATION + ' ' : ''}${advice}`,
+			`${explanation}${advice}`,
 	);
 }
 
@@ -112,7 +115,8 @@ async function checkConfigured(home: string, environment: JavaEnvironment): Prom
 	const version = parseJavaVersion(output);
 	if (version === undefined && startsNotFromNonAnsiPath(executable, output, environment)) {
 		throw new JavaNotFoundError(
-			`${prefix} cannot start: ${NON_ANSI_EXPLANATION} Install Java in a folder whose path holds none of them and set that folder.`,
+			`${prefix} cannot start. ${await nonAnsiExplanation([executable], environment)} ` +
+				'Install Java in a folder whose path holds none of them and set that folder.',
 		);
 	}
 	if (version === undefined) {
@@ -128,9 +132,84 @@ async function checkConfigured(home: string, environment: JavaEnvironment): Prom
 
 const VERSION_ARGS = ['-XshowSettings:properties', '-version'];
 
-const NON_ANSI_EXPLANATION =
-	'On Windows, Java cannot start from a folder whose path holds characters the ANSI code page cannot represent, ' +
-	'e.g. Greek or Japanese ones.';
+/** The languages of the ANSI code pages of Windows. */
+const CODE_PAGE_LANGUAGES: Record<number, string> = {
+	874: 'Thai',
+	932: 'Japanese',
+	936: 'Simplified Chinese',
+	949: 'Korean',
+	950: 'Traditional Chinese',
+	1250: 'Central European',
+	1251: 'Cyrillic',
+	1252: 'Western European',
+	1253: 'Greek',
+	1254: 'Turkish',
+	1255: 'Hebrew',
+	1256: 'Arabic',
+	1257: 'Baltic',
+	1258: 'Vietnamese',
+};
+
+/** The most characters a message names. */
+const MAXIMUM_CHARACTERS = 10;
+
+/**
+ * Explains that Java on Windows cannot start from the folders of the executables: it names the code page in effect,
+ * the parts of the paths holding characters it cannot represent, and these characters.
+ */
+async function nonAnsiExplanation(executables: string[], environment: JavaEnvironment): Promise<string> {
+	const codePage = await environment.codePage().catch(() => undefined);
+	const representable = codePage === undefined ? undefined : charactersOf(codePage);
+	const found = foreignParts(executables, representable);
+	// Where the code page seems to represent them all, the launcher still could not cope: name all outside ASCII.
+	const { parts, characters } = found.parts.length > 0 ? found : foreignParts(executables, undefined);
+
+	const language = codePage === undefined ? undefined : CODE_PAGE_LANGUAGES[codePage];
+	const windowsName = codePage === 874 || (codePage !== undefined && codePage >= 1250 && codePage <= 1258);
+	const named =
+		codePage === undefined
+			? ''
+			: `, ${windowsName ? `Windows-${codePage}` : `code page ${codePage}`}${language ? ` (${language})` : ''}`;
+	const list = characters.slice(0, MAXIMUM_CHARACTERS).join(' ') + (characters.length > MAXIMUM_CHARACTERS ? ' …' : '');
+	const quoted = parts.map((part) => `"${part}"`).join(', ');
+	return (
+		`On Windows, Java starts only from a folder whose path holds just characters of the system's code page${named}, ` +
+		`but ${quoted} ${parts.length === 1 ? 'holds' : 'hold'} others: ${list}.`
+	);
+}
+
+/**
+ * The parts of the paths holding characters outside ASCII which are not among those representable, and these
+ * characters, each once and in the order found. Without representable characters, all outside ASCII are named.
+ */
+function foreignParts(paths: string[], representable: Set<string> | undefined): { parts: string[]; characters: string[] } {
+	const parts = new Set<string>();
+	const characters = new Set<string>();
+	for (const file of paths) {
+		for (const part of file.split(/[\\/]/)) {
+			const foreign = [...part].filter((character) => character > '\x7f' && !representable?.has(character));
+			if (foreign.length > 0) {
+				parts.add(part);
+				foreign.forEach((character) => characters.add(character));
+			}
+		}
+	}
+	return { parts: [...parts], characters: [...characters] };
+}
+
+/**
+ * The characters outside ASCII a single-byte code page of Windows represents, read by decoding its upper half;
+ * undefined for a code page that cannot be decoded here, e.g. one of several bytes per character.
+ */
+function charactersOf(codePage: number): Set<string> | undefined {
+	try {
+		const decoder = new TextDecoder(`windows-${codePage}`);
+		const upper = Uint8Array.from({ length: 128 }, (_, index) => 128 + index);
+		return new Set(decoder.decode(upper));
+	} catch {
+		return undefined;
+	}
+}
 
 /**
  * Whether a Java on Windows failed to start because the path of its folder holds characters the ANSI code page cannot
@@ -202,5 +281,20 @@ export function nodeJavaEnvironment(): JavaEnvironment {
 					}
 				});
 			}),
+		codePage: async () => {
+			if (process.platform !== 'win32') {
+				return undefined;
+			}
+			const output = await new Promise<string>((resolve, reject) =>
+				execFile(
+					'reg',
+					['query', 'HKLM\\SYSTEM\\CurrentControlSet\\Control\\Nls\\CodePage', '/v', 'ACP'],
+					{ timeout: 10_000, windowsHide: true },
+					(error, stdout) => (error ? reject(error) : resolve(stdout)),
+				),
+			).catch(() => '');
+			const match = /\bACP\s+REG_SZ\s+(\d+)/.exec(output);
+			return match ? Number(match[1]) : undefined;
+		},
 	};
 }
