@@ -90,12 +90,25 @@ In the preview:
 | `markdownSupport.java.home`              | The folder of the Java installation to run the server with.             |
 | `markdownSupport.trace.server`           | Logs the messages with the server: `off`, `messages` or `verbose`.      |
 | `markdownSupport.preview.openWebLinksIn` | Where clicked web addresses open: `integratedBrowser`, `systemBrowser`. |
+| `markdownSupport.plantUml.dotExecutable` | Graphviz's `dot` for PlantUML; empty: `GRAPHVIZ_DOT`, then the usual.  |
 
 `markdownSupport.java.home` is a user setting only, since it decides which program is run; changing it
 restarts the server. The settings editor marks a value that cannot be right, e.g. the Java executable in
 place of its installation folder. Whether the folder holds a Java 21 is found out when the server is
 started: the message names the setting, and its button "Open Settings" shows that setting. The server's
 messages are shown in the output channel "Markdown Support".
+
+`markdownSupport.plantUml.dotExecutable` is sent to the running server when it changes. Its description
+links to two read-only views of what the server runs with, which the command palette also offers under
+"Markdown Support":
+
+| Command                                        | Title                      | Shows                                                                 |
+|------------------------------------------------|----------------------------|-----------------------------------------------------------------------|
+| `markdownSupport.environment.showPlantUml`     | Show PlantUML and Graphviz | PlantUML's version, security profile, URL allowlist; Graphviz's `dot` |
+| `markdownSupport.environment.showDependencies` | Show Dependencies          | The libraries the server runs with, and their versions                |
+
+Each view asks the server whenever it is opened; running its command again refreshes it. Without a
+running server, the view says so.
 
 ## Building
 
