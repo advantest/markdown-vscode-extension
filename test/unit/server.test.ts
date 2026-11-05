@@ -168,6 +168,7 @@ function environment(
 			result.runs.push(executable);
 			return files[executable] ?? '';
 		},
+		codePage: async () => undefined,
 	};
 	return result;
 }

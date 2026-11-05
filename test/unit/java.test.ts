@@ -12,9 +12,7 @@ const PROPERTIES_17 = 'Property settings:\n    java.specification.version = 17\n
 const PROPERTIES_8 = 'Property settings:\n    java.specification.version = 1.8\n';
 /** What the Java launcher writes on Windows when the path of its folder holds characters outside the ANSI code page. */
 const JAVA_DLL_MISSING = 'Error: could not find java.dll\nError: Could not find Java SE Runtime Environment.\n';
-const NON_ANSI_EXPLANATION =
-	'On Windows, Java cannot start from a folder whose path holds characters the ANSI code page cannot represent, ' +
-	'e.g. Greek or Japanese ones.';
+const STARTS_ONLY = 'On Windows, Java starts only from a folder whose path holds just characters of the system\'s code page';
 
 describe('parseJavaVersion', () => {
 	it('reads the feature version from java.specification.version', () => {
@@ -124,15 +122,69 @@ describe('findJava', () => {
 
 		it('says plainly that Java on Windows cannot start from a folder the ANSI code page cannot name', async () => {
 			const home = 'C:\\Users\\Ελληνικά-日本語\\jdk-21';
-			const environment = fake({ platform: 'win32', files: { [`${home}\\bin\\java.exe`]: JAVA_DLL_MISSING } });
+			const environment = fake({
+				platform: 'win32',
+				codePage: 1252,
+				files: { [`${home}\\bin\\java.exe`]: JAVA_DLL_MISSING },
+			});
 
 			const error = await rejection(findJava(home, environment));
 
 			assert.equal(
 				error.message,
-				`The Java ${home} set in markdownSupport.java.home cannot start: ${NON_ANSI_EXPLANATION} ` +
+				`The Java ${home} set in markdownSupport.java.home cannot start. ` +
+					`${STARTS_ONLY}, Windows-1252 (Western European), ` +
+					'but "Ελληνικά-日本語" holds others: Ε λ η ν ι κ ά 日 本 語. ' +
 					'Install Java in a folder whose path holds none of them and set that folder.',
 			);
+		});
+
+		it('names only the characters the code page in effect cannot represent', async () => {
+			const home = 'C:\\Users\\Ελληνικά-日本語\\Ärger\\jdk-21';
+			const environment = fake({
+				platform: 'win32',
+				codePage: 1253,
+				files: { [`${home}\\bin\\java.exe`]: JAVA_DLL_MISSING },
+			});
+
+			const error = await rejection(findJava(home, environment));
+
+			assert.match(error.message, /, Windows-1253 \(Greek\), but "Ελληνικά-日本語", "Ärger" hold others: 日 本 語 Ä\. /);
+		});
+
+		it('names the characters outside ASCII where the code page is unknown', async () => {
+			const home = 'C:\\Users\\Jürgen-日本語\\jdk-21';
+			const environment = fake({ platform: 'win32', files: { [`${home}\\bin\\java.exe`]: JAVA_DLL_MISSING } });
+
+			const error = await rejection(findJava(home, environment));
+
+			assert.match(error.message, new RegExp(`${STARTS_ONLY}, but "Jürgen-日本語" holds others: ü 日 本 語\\. `));
+		});
+
+		it('names a code page other than those of Windows by its number', async () => {
+			const home = 'C:\\Jürgen\\jdk-21';
+			const environment = fake({
+				platform: 'win32',
+				codePage: 932,
+				files: { [`${home}\\bin\\java.exe`]: JAVA_DLL_MISSING },
+			});
+
+			const error = await rejection(findJava(home, environment));
+
+			assert.match(error.message, /, code page 932 \(Japanese\), but "Jürgen" holds others: ü\. /);
+		});
+
+		it('names no more than ten characters', async () => {
+			const home = 'C:\\αβγδεζηθικλμ\\jdk-21';
+			const environment = fake({
+				platform: 'win32',
+				codePage: 1252,
+				files: { [`${home}\\bin\\java.exe`]: JAVA_DLL_MISSING },
+			});
+
+			const error = await rejection(findJava(home, environment));
+
+			assert.match(error.message, /holds others: α β γ δ ε ζ η θ ι κ …\. /);
 		});
 
 		it('keeps saying it tells no version for a broken Java in a folder of plain characters', async () => {
@@ -246,6 +298,7 @@ describe('findJava', () => {
 		it('says plainly why the Java of JAVA_HOME or the PATH in a folder the ANSI code page cannot name is passed over', async () => {
 			const environment = fake({
 				platform: 'win32',
+				codePage: 1251,
 				files: { 'C:\\Ελληνικά\\jdk-21\\bin\\java.exe': JAVA_DLL_MISSING, 'C:\\jdk-17\\bin\\java.exe': PROPERTIES_17 },
 				env: { JAVA_HOME: 'C:\\Ελληνικά\\jdk-21', PATH: 'C:\\jdk-17\\bin' },
 			});
@@ -256,7 +309,7 @@ describe('findJava', () => {
 				error.message,
 				'No Java 21 or newer was found in JAVA_HOME or on the PATH, only ' +
 					'C:\\Ελληνικά\\jdk-21\\bin\\java.exe (cannot start), C:\\jdk-17\\bin\\java.exe (Java 17). ' +
-					`${NON_ANSI_EXPLANATION} ` +
+					`${STARTS_ONLY}, Windows-1251 (Cyrillic), but "Ελληνικά" holds others: Ε λ η ν ι κ ά. ` +
 					'Set the folder of a Java 21 or newer installation in the setting markdownSupport.java.home.',
 			);
 		});
@@ -297,6 +350,16 @@ describe('nodeJavaEnvironment', () => {
 	it('fails for an executable that does not exist', async () => {
 		await assert.rejects(environment.run(`${__dirname}/missing-executable`, []));
 	});
+
+	it('reads the ANSI code page on Windows only', async () => {
+		const codePage = await environment.codePage();
+
+		if (process.platform === 'win32') {
+			assert.equal(typeof codePage, 'number');
+		} else {
+			assert.equal(codePage, undefined);
+		}
+	});
 });
 
 type Outcome = string | Error;
@@ -312,11 +375,13 @@ function fake(options: {
 	files?: Record<string, Outcome>;
 	env?: Record<string, string>;
 	platform?: NodeJS.Platform;
+	codePage?: number;
 }): FakeEnvironment {
 	const files = options.files ?? {};
 	const environment: FakeEnvironment = {
 		platform: options.platform ?? 'linux',
 		env: options.env ?? {},
+		codePage: async () => options.codePage,
 		runs: [],
 		checked: [],
 		isFile: async (path) => {
