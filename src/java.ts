@@ -58,13 +58,20 @@ export async function findJava(configuredHome: string | undefined, environment: 
 	}
 
 	const found: string[] = [];
+	let nonAnsi = false;
 	for (const executable of candidates(environment)) {
 		if (!(await environment.isFile(executable))) {
 			continue;
 		}
-		const version = await versionOf(executable, environment).catch(() => undefined);
+		const output = await environment.run(executable, VERSION_ARGS).catch(() => undefined);
+		const version = output === undefined ? undefined : parseJavaVersion(output);
 		if (version !== undefined && version >= MINIMUM_JAVA_VERSION) {
 			return { executable, version };
+		}
+		if (version === undefined && startsNotFromNonAnsiPath(executable, output, environment)) {
+			nonAnsi = true;
+			found.push(`${executable} (cannot start)`);
+			continue;
 		}
 		found.push(`${executable} (${version === undefined ? 'version unknown' : `Java ${version}`})`);
 	}
@@ -76,7 +83,8 @@ export async function findJava(configuredHome: string | undefined, environment: 
 		);
 	}
 	throw new JavaNotFoundError(
-		`No Java ${MINIMUM_JAVA_VERSION} or newer was found in JAVA_HOME or on the PATH, only ${found.join(', ')}. ${advice}`,
+		`No Java ${MINIMUM_JAVA_VERSION} or newer was found in JAVA_HOME or on the PATH, only ${found.join(', ')}. ` +
+			`${nonAnsi ? NON_ANSI_EXPLANATION + ' ' : ''}${advice}`,
 	);
 }
 
@@ -95,11 +103,17 @@ async function checkConfigured(home: string, environment: JavaEnvironment): Prom
 		);
 	}
 	const prefix = `The Java ${home} set in ${SETTING}`;
-	let version: number | undefined;
+	let output: string;
 	try {
-		version = await versionOf(executable, environment);
+		output = await environment.run(executable, VERSION_ARGS);
 	} catch (error) {
 		throw new JavaNotFoundError(`${prefix} could not be run: ${messageOf(error)}`);
+	}
+	const version = parseJavaVersion(output);
+	if (version === undefined && startsNotFromNonAnsiPath(executable, output, environment)) {
+		throw new JavaNotFoundError(
+			`${prefix} cannot start: ${NON_ANSI_EXPLANATION} Install Java in a folder whose path holds none of them and set that folder.`,
+		);
 	}
 	if (version === undefined) {
 		throw new JavaNotFoundError(`${prefix} did not tell its version. Is it a Java executable?`);
@@ -112,8 +126,20 @@ async function checkConfigured(home: string, environment: JavaEnvironment): Prom
 	return { executable, version };
 }
 
-async function versionOf(executable: string, environment: JavaEnvironment): Promise<number | undefined> {
-	return parseJavaVersion(await environment.run(executable, ['-XshowSettings:properties', '-version']));
+const VERSION_ARGS = ['-XshowSettings:properties', '-version'];
+
+const NON_ANSI_EXPLANATION =
+	'On Windows, Java cannot start from a folder whose path holds characters the ANSI code page cannot represent, ' +
+	'e.g. Greek or Japanese ones.';
+
+/**
+ * Whether a Java on Windows failed to start because the path of its folder holds characters the ANSI code page cannot
+ * represent: its launcher then cannot find its own java.dll. The code page itself is not known, so any character
+ * outside ASCII in the path is taken as the cause where the launcher says so.
+ */
+function startsNotFromNonAnsiPath(executable: string, output: string | undefined, environment: JavaEnvironment): boolean {
+	// eslint-disable-next-line no-control-regex
+	return environment.platform === 'win32' && /[^\x00-\x7f]/.test(executable) && /could not find java\.dll/i.test(output ?? '');
 }
 
 /** The executables to try, in order and each once: that of `JAVA_HOME`, then those on the `PATH`. */
