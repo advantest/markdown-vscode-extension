@@ -9,9 +9,9 @@ export interface PlantUmlEnvironment {
 	version: string;
 	securityProfile: string;
 	urlAllowList: string[];
-	/** The dot executable in effect; null where none was found. */
-	dotExecutable: string | null;
-	graphvizVersion: string | null;
+	/** The dot executable in effect; null or left out where none was found. */
+	dotExecutable?: string | null;
+	graphvizVersion?: string | null;
 }
 
 /** The answer to the server's request `markdown/environment`. */
@@ -72,6 +72,6 @@ function failure(answer: { notRunning: true } | { error: string }): string {
 	return 'error' in answer ? `The language server could not tell: ${answer.error}\n` : NOT_RUNNING;
 }
 
-function known(value: string | null): string {
-	return value === null || value.trim() === '' ? 'unknown' : value;
+function known(value: string | null | undefined): string {
+	return value === null || value === undefined || value.trim() === '' ? 'unknown' : value;
 }
