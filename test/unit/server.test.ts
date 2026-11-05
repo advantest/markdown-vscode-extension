@@ -153,7 +153,7 @@ describe('prepareLaunch', () => {
 });
 
 function settings(values: Partial<Settings>): Settings {
-	return { javaHome: undefined, ...values };
+	return { javaHome: undefined, dotExecutable: undefined, ...values };
 }
 function environment(
 	files: Record<string, string>,

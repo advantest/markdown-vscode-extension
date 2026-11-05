@@ -29,6 +29,11 @@ describe('The settings', () => {
 		assert.equal(configuration().inspect('trace.server')?.defaultValue, 'off');
 		assert.deepEqual(contributedProperty('trace.server').enum, ['off', 'messages', 'verbose']);
 	});
+
+	it('contribute the dot executable of Graphviz, empty by default, which a workspace may set as well', () => {
+		assert.equal(configuration().inspect('plantUml.dotExecutable')?.defaultValue, '');
+		assert.equal(contributedProperty('plantUml.dotExecutable').scope, 'machine-overridable');
+	});
 });
 
 interface ContributedProperty {

@@ -10,7 +10,7 @@ interface Property {
 }
 
 const manifest = JSON.parse(readFileSync(path.join(__dirname, '..', '..', '..', 'package.json'), 'utf8')) as {
-	contributes: { configuration: { properties: Record<string, Property> } };
+	contributes: { configuration: { properties: Record<string, Property> }; commands: { command: string }[] };
 };
 const properties = manifest.contributes.configuration.properties;
 
@@ -63,6 +63,22 @@ describe('the settings schema', () => {
 		it('says what a valid value is, with an example', () => {
 			assert.match(property.patternErrorMessage ?? '', /folder/);
 			assert.match(property.markdownDescription ?? '', /e\.g\. `[^`]+`/);
+		});
+	});
+
+	describe('markdownSupport.plantUml.dotExecutable', () => {
+		const property = properties['markdownSupport.plantUml.dotExecutable'];
+
+		it('links to the views of PlantUML and Graphviz and of the dependencies, by contributed commands', () => {
+			const commands = new Set(manifest.contributes.commands.map((command) => command.command));
+			const links = [...(property.markdownDescription ?? '').matchAll(/\]\(command:([\w.]+)\)/g)].map(
+				(match) => match[1],
+			);
+
+			assert.deepEqual(links, ['markdownSupport.environment.showPlantUml', 'markdownSupport.environment.showDependencies']);
+			for (const link of links) {
+				assert.ok(commands.has(link), `${link} is contributed`);
+			}
 		});
 	});
 });
