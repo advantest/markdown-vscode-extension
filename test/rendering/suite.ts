@@ -16,8 +16,16 @@ import type { Rendered } from '../../src/preview/manager';
 const EXTENSION_ID = 'advantest.markdown-support';
 export const RENDER_TIMEOUT = 60_000;
 
+/** What another extension, whose server renders some content differently, sets for its run of the suite. */
+export interface RenderingOptions {
+	/** Runs once the extension is active and before the document is previewed, e.g. to check which server runs. */
+	before?: (api: MarkdownSupportApi) => Promise<void> | void;
+	/** The address a server links text looking like a ticket number to, e.g. HMR-122; without it, it stays text. */
+	ticketLink?: RegExp;
+}
+
 /** Defines, within the caller's describe, the tests of the preview of a document with every kind of content. */
-export function describeRendering(): void {
+export function describeRendering(options: RenderingOptions = {}): void {
 	describe('of a document with every kind of content', function () {
 		this.timeout(RENDER_TIMEOUT + 10_000);
 
@@ -38,6 +46,7 @@ export function describeRendering(): void {
 			const uri = vscode.Uri.file(file);
 			await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(uri), vscode.ViewColumn.One);
 			const api = await vscode.extensions.getExtension<MarkdownSupportApi>(EXTENSION_ID)!.activate();
+			await options.before?.(api);
 			const rendering = renderingOf(api, uri);
 			await vscode.commands.executeCommand('markdownSupport.preview.openToSide');
 			rendered = await rendering;
@@ -69,7 +78,9 @@ export function describeRendering(): void {
 		});
 
 		it('shows the links with their targets as written', () => {
-			const links = rendered.content.links.map((link) => [link.text, link.href]);
+			const links = rendered.content.links
+				.filter((link) => !options.ticketLink || link.text !== 'HMR-122')
+				.map((link) => [link.text, link.href]);
 			assert.deepEqual(links, [
 				['another document', '../other.md'],
 				['a heading', '#rendering'],
@@ -112,10 +123,21 @@ export function describeRendering(): void {
 			assert.doesNotMatch(rendered.content.text, /\*\*|<details>/);
 		});
 
-		it('leaves text that looks like a ticket number as text', () => {
-			assert.match(rendered.content.text, /The ticket HMR-122 stays text\./);
-			assert.ok(!rendered.content.links.some((link) => link.text.includes('HMR-122')), 'HMR-122 is no link');
-		});
+		if (options.ticketLink) {
+			const address = options.ticketLink;
+			it('links text that looks like a ticket number to the ticket', () => {
+				assert.match(rendered.content.text, /The ticket HMR-122 in a sentence\./);
+				const tickets = rendered.content.links.filter((link) => link.text.includes('HMR-122'));
+				assert.equal(tickets.length, 1, 'one link to HMR-122');
+				assert.equal(tickets[0].text, 'HMR-122', 'the link shows the ticket number only');
+				assert.match(tickets[0].href, address);
+			});
+		} else {
+			it('leaves text that looks like a ticket number as text', () => {
+				assert.match(rendered.content.text, /The ticket HMR-122 in a sentence\./);
+				assert.ok(!rendered.content.links.some((link) => link.text.includes('HMR-122')), 'HMR-122 is no link');
+			});
+		}
 
 		it('draws the PlantUML code block as an SVG figure', () => {
 			assert.ok(
@@ -209,7 +231,7 @@ const CONTENT = [
 	'',
 	'[^note]: The footnote text.',
 	'',
-	'The ticket HMR-122 stays text.',
+	'The ticket HMR-122 in a sentence.',
 	'',
 	'## A section with an anchor {#own-anchor}',
 	'',
