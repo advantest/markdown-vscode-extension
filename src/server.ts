@@ -3,10 +3,11 @@ import { acceptedVersion, accepts, declaringExtensions, type InstalledExtension,
 import { findJava, JavaNotFoundError, type JavaEnvironment } from './java';
 import { SECTION, type Settings } from './settings';
 
-/** The command line that starts the language server. */
+/** The command line that starts the language server, and the folder it is started in. */
 export interface ServerLaunch {
 	command: string;
 	args: string[];
+	cwd: string;
 }
 
 /** The JAR of the server to start, and what to call it in messages. */
@@ -130,7 +131,9 @@ export async function chooseServer(
 }
 
 /**
- * Prepares `java -jar <JAR>`. The JAR is checked first, since looking for Java runs executables and is in vain
+ * Prepares `java -jar <JAR>`, started in the folder of the JAR with its file name alone: on Windows, Java reads its
+ * command line in the ANSI code page, which cannot represent every path, e.g. one through a user's folder named with
+ * Greek or Japanese characters. The JAR is checked first, since looking for Java runs executables and is in vain
  * without a server to start.
  */
 export async function prepareLaunch(
@@ -151,5 +154,5 @@ export async function prepareLaunch(
 		}
 		throw error;
 	}
-	return { command: java.executable, args: ['-jar', jar.path] };
+	return { command: java.executable, args: ['-jar', path.basename(jar.path)], cwd: path.dirname(jar.path) };
 }

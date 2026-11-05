@@ -112,9 +112,9 @@ async function start(): Promise<void> {
 		report(error);
 		return;
 	}
-	output?.info(`Starting ${jar.description}: ${launch.command} ${launch.args.join(' ')}`);
+	output?.info(`Starting ${jar.description}: ${launch.command} ${launch.args.join(' ')} in ${launch.cwd}`);
 
-	const serverOptions: ServerOptions = { command: launch.command, args: launch.args };
+	const serverOptions: ServerOptions = { command: launch.command, args: launch.args, options: { cwd: launch.cwd } };
 	const clientOptions: LanguageClientOptions = {
 		documentSelector: [
 			{ language: 'markdown', scheme: 'file' },
