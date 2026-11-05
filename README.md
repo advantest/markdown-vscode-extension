@@ -164,3 +164,23 @@ While the extension runs from its sources or under test, the environment variabl
 `MARKDOWN_SUPPORT_TEST_SERVER_JAR` may name another JAR of the server, e.g. one just built, to start in
 place of the bundled one or a declared one; no declaration is read then. An installed extension ignores it.
 `MARKDOWN_SUPPORT_TEST_NO_SERVER` ranks above both.
+
+### The rendering tests for another extension
+
+The tests of what the preview shows of every kind of content, `test/rendering/suite.ts`, check the preview
+against whichever server runs, so an extension declaring a server can run the same tests. It depends on this
+extension as a development dependency pinned to a commit, e.g.
+`"markdown-support": "git+<address of this repository>#<commit>"`. npm then runs the script `prepare`, which
+builds the extension and compiles the tests, and installs what `.npmignore` lets through: `dist/`, `images/`
+and `out/test/rendering/`, but not the bundled server. `node_modules/markdown-support` is then the extension
+to load as a development path next to the declaring one, and its tests define the suite within a `describe`
+of their own:
+
+```js
+require('markdown-support/out/test/rendering/suite').describeRendering({
+  before: async (api) => { /* e.g. checks api.runningServer() before the document is previewed */ },
+  ticketLink: /\/browse\/HMR-122$/, // if the server links text like HMR-122; without it, it stays text
+});
+```
+
+The suite writes its documents and files into a temporary folder itself. `npm ci` runs `prepare` here too.
