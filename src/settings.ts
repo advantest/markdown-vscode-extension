@@ -10,6 +10,8 @@ export interface Configuration {
 export interface Settings {
 	/** The Java executable to run the server with, or `undefined` to search `JAVA_HOME` and the `PATH`. */
 	javaHome: string | undefined;
+	/** Graphviz's dot executable, or `undefined` for the server to search `GRAPHVIZ_DOT` and the usual places. */
+	dotExecutable: string | undefined;
 }
 
 /**
@@ -19,7 +21,13 @@ export interface Settings {
 export function readSettings(configuration: Configuration): Settings {
 	return {
 		javaHome: path(configuration.get('java.home')),
+		dotExecutable: path(configuration.get('plantUml.dotExecutable')),
 	};
+}
+
+/** The `initializationOptions` the server is started with. */
+export function initializationOptions(settings: Settings): { plantUml: { dotExecutable: string } } {
+	return { plantUml: { dotExecutable: settings.dotExecutable ?? '' } };
 }
 
 function path(value: unknown): string | undefined {

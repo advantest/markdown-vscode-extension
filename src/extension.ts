@@ -12,7 +12,7 @@ import {
 	startsNoServer,
 	TEST_NO_SERVER,
 } from './server';
-import { readSettings, SECTION } from './settings';
+import { initializationOptions, readSettings, SECTION } from './settings';
 
 const CLIENT_ID = SECTION;
 const NAME = 'Markdown Support';
@@ -121,6 +121,9 @@ async function start(): Promise<void> {
 			{ language: 'markdown', scheme: 'untitled' },
 		],
 		outputChannel: output,
+		initializationOptions: initializationOptions(settings),
+		// The server reads the settings it needs, e.g. the dot executable, when they change.
+		synchronize: { configurationSection: SECTION },
 	};
 	const started = new LanguageClient(CLIENT_ID, NAME, serverOptions, clientOptions);
 	client = started;
