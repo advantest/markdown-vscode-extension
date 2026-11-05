@@ -33,10 +33,13 @@ describe('the views of what the language server markdown-ls runs with', function
 		assert.match(text, /^Graphviz version: .+$/m);
 	});
 
-	it('shows the libraries and their versions', async () => {
+	it('shows its own extension, then the libraries and their versions', async () => {
 		const text = await shown('markdownSupport.environment.showDependencies');
 
-		assert.match(text, /^The libraries the language server runs with:\n\n(\S+ +\S+\n)+$/);
+		assert.match(
+			text,
+			/^Extensions:\n\nMarkdown Support +\S+\n\nLibraries of the language server:\n\n(\S+ +\S+\n)+$/,
+		);
 	});
 });
 

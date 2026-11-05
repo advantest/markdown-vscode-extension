@@ -35,6 +35,7 @@ export async function writeStubExtensions(folder, bundledJar, markdownLs) {
 			JSON.stringify(
 				{
 					name: `declared-${name}`,
+					displayName: `Stub declaring a ${name} server`,
 					publisher: 'stub',
 					version: '0.0.1',
 					engines: { vscode: '^1.91.0' },

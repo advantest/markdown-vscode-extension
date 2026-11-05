@@ -1,5 +1,5 @@
 import * as assert from 'node:assert/strict';
-import { dependenciesText, plantUmlText, type ServerEnvironment } from '../../src/environment';
+import { dependenciesText, extensionVersion, plantUmlText, type ServerEnvironment } from '../../src/environment';
 
 const ENVIRONMENT: ServerEnvironment = {
 	libraries: [
@@ -77,10 +77,17 @@ describe('the view of PlantUML and Graphviz', () => {
 });
 
 describe('the view of the dependencies', () => {
-	it('lists the libraries in the order the server gives, their versions aligned', () => {
+	const OWN = { name: 'Markdown Support', version: '1.0.0-alpha' };
+
+	it('lists the extensions, then the libraries in the order the server gives, versions aligned per group', () => {
 		assert.equal(
-			dependenciesText({ environment: ENVIRONMENT }),
-			'The libraries the language server runs with:\n' +
+			dependenciesText({ environment: ENVIRONMENT }, [OWN, { name: 'Stub', version: '2.1.0' }]),
+			'Extensions:\n' +
+				'\n' +
+				'Markdown Support  1.0.0-alpha\n' +
+				'Stub              2.1.0\n' +
+				'\n' +
+				'Libraries of the language server:\n' +
 				'\n' +
 				'markdown-ls  1.0.0\n' +
 				'flexmark     0.64.8\n',
@@ -88,10 +95,31 @@ describe('the view of the dependencies', () => {
 	});
 
 	it('says so where the server names none', () => {
-		assert.match(dependenciesText({ environment: { ...ENVIRONMENT, libraries: [] } }), /none/);
+		assert.match(
+			dependenciesText({ environment: { ...ENVIRONMENT, libraries: [] } }, [OWN]),
+			/\n\nLibraries of the language server:\n\nThe language server names none of the libraries it runs with\.\n$/,
+		);
 	});
 
-	it('says that the server is not running', () => {
-		assert.match(dependenciesText({ notRunning: true }), /^The language server is not running/);
+	it('lists the extensions though the server is not running, and says so', () => {
+		assert.match(
+			dependenciesText({ notRunning: true }, [OWN]),
+			/^Extensions:\n\nMarkdown Support {2}1\.0\.0-alpha\n\nLibraries of the language server:\n\nThe language server is not running/,
+		);
+	});
+});
+
+describe('extensionVersion', () => {
+	it('names an extension by its display name and version', () => {
+		assert.deepEqual(extensionVersion({ name: 'n', displayName: 'Display', version: '1.2.3' }, 'p.n'), {
+			name: 'Display',
+			version: '1.2.3',
+		});
+	});
+
+	it('falls back to its name, then to the id, and to "unknown" for the version', () => {
+		assert.deepEqual(extensionVersion({ name: 'n' }, 'p.n'), { name: 'n', version: 'unknown' });
+		assert.deepEqual(extensionVersion({}, 'p.n'), { name: 'p.n', version: 'unknown' });
+		assert.deepEqual(extensionVersion(undefined, 'p.n'), { name: 'p.n', version: 'unknown' });
 	});
 });

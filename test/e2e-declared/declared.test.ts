@@ -53,4 +53,14 @@ describe('the extension next to an extension that declares a server', function (
 		assert.equal(running?.path, path.join(stub.extensionPath, 'server', 'launcher.jar'));
 		assert.match(running?.description ?? '', /, declared by the extension stub\.declared-valid$/);
 	});
+
+	it('lists the declaring extension next to its own on the view of the dependencies', async () => {
+		await vscode.commands.executeCommand('markdownSupport.environment.showDependencies');
+		const text = vscode.window.activeTextEditor?.document.getText() ?? '';
+
+		assert.match(
+			text,
+			/^Extensions:\n\nMarkdown Support +\S+\nStub declaring a valid server +0\.0\.1\n\nLibraries of the language server:\n\n(\S+ +\S+\n)+$/,
+		);
+	});
 });

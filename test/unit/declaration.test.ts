@@ -17,7 +17,11 @@ const BUNDLED = {
 const OTHER: InstalledExtension = { id: 'some.other', extensionPath: '/other', packageJSON: { name: 'other' } };
 
 function declaring(id: string, server: unknown): InstalledExtension {
-	return { id, extensionPath: path.join('/stubs', id), packageJSON: { markdownSupport: { server } } };
+	return {
+		id,
+		extensionPath: path.join('/stubs', id),
+		packageJSON: { displayName: `Stub ${id}`, version: '3.0.0', markdownSupport: { server } },
+	};
 }
 const VALID = declaring('stub.valid', { jar: 'server/launcher.jar', markdownLs: '1.1.0' });
 const VALID_JAR = path.join('/stubs', 'stub.valid', 'server', 'launcher.jar');
@@ -34,7 +38,11 @@ describe('chooseServer', () => {
 
 	it('is the server an extension declares, its JAR relative to the folder of that extension', async () => {
 		assert.deepEqual(await chooseServer(own(), [OTHER, VALID], {}, files(VALID_JAR)), {
-			jar: { path: VALID_JAR, description: 'markdown-ls 1.1.0, declared by the extension stub.valid' },
+			jar: {
+				path: VALID_JAR,
+				description: 'markdown-ls 1.1.0, declared by the extension stub.valid',
+				declaredBy: { name: 'Stub stub.valid', version: '3.0.0' },
+			},
 		});
 	});
 
