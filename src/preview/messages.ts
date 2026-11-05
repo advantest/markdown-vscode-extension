@@ -68,6 +68,12 @@ export interface PageContent {
 	readonly inlineMath: number;
 	/** The number of formulas typeset in display mode. */
 	readonly displayMath: number;
+	/** The ids of the elements, which links within the page lead to. */
+	readonly ids: readonly string[];
+	/** The number of elements of each tag name, in lower case. */
+	readonly elements: Readonly<Record<string, number>>;
+	/** The texts of the figures drawn as SVG. */
+	readonly figures: readonly string[];
 }
 
 /** A part of the computed style of an element. */

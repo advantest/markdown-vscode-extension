@@ -120,6 +120,13 @@ function pageContent(): PageContent {
 		codeBlocks: app.querySelectorAll('pre > code').length,
 		inlineMath: app.querySelectorAll('mjx-container:not([display="true"])').length,
 		displayMath: app.querySelectorAll('mjx-container[display="true"]').length,
+		ids: Array.from(app.querySelectorAll('[id]'), (element) => element.id),
+		elements: Array.from(app.querySelectorAll('*')).reduce<Record<string, number>>((counts, element) => {
+			const tag = element.tagName.toLowerCase();
+			counts[tag] = (counts[tag] ?? 0) + 1;
+			return counts;
+		}, {}),
+		figures: Array.from(app.querySelectorAll('figure > svg'), (svg) => svg.textContent ?? ''),
 	};
 }
 
