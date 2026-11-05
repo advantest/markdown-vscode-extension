@@ -10,6 +10,11 @@ import {
 const PROPERTIES_21 = 'Property settings:\n    java.home = /jdk-21\n    java.specification.version = 21\n    java.version = 21.0.5\n';
 const PROPERTIES_17 = 'Property settings:\n    java.specification.version = 17\n';
 const PROPERTIES_8 = 'Property settings:\n    java.specification.version = 1.8\n';
+/** What the Java launcher writes on Windows when the path of its folder holds characters outside the ANSI code page. */
+const JAVA_DLL_MISSING = 'Error: could not find java.dll\nError: Could not find Java SE Runtime Environment.\n';
+const NON_ANSI_EXPLANATION =
+	'On Windows, Java cannot start from a folder whose path holds characters the ANSI code page cannot represent, ' +
+	'e.g. Greek or Japanese ones.';
 
 describe('parseJavaVersion', () => {
 	it('reads the feature version from java.specification.version', () => {
@@ -116,6 +121,27 @@ describe('findJava', () => {
 			assert.match(error.message, /The Java \/jdk set in markdownSupport\.java\.home could not be run/);
 			assert.match(error.message, /EACCES/);
 		});
+
+		it('says plainly that Java on Windows cannot start from a folder the ANSI code page cannot name', async () => {
+			const home = 'C:\\Users\\Ελληνικά-日本語\\jdk-21';
+			const environment = fake({ platform: 'win32', files: { [`${home}\\bin\\java.exe`]: JAVA_DLL_MISSING } });
+
+			const error = await rejection(findJava(home, environment));
+
+			assert.equal(
+				error.message,
+				`The Java ${home} set in markdownSupport.java.home cannot start: ${NON_ANSI_EXPLANATION} ` +
+					'Install Java in a folder whose path holds none of them and set that folder.',
+			);
+		});
+
+		it('keeps saying it tells no version for a broken Java in a folder of plain characters', async () => {
+			const environment = fake({ platform: 'win32', files: { 'C:\\jdk\\bin\\java.exe': JAVA_DLL_MISSING } });
+
+			const error = await rejection(findJava('C:\\jdk', environment));
+
+			assert.match(error.message, /did not tell its version/);
+		});
 	});
 	describe('without a configured Java executable', () => {
 		it('takes the Java of JAVA_HOME', async () => {
@@ -215,6 +241,24 @@ describe('findJava', () => {
 			});
 
 			assert.equal((await findJava(undefined, environment)).executable, 'C:\\jdk-21\\bin\\java.exe');
+		});
+
+		it('says plainly why the Java of JAVA_HOME or the PATH in a folder the ANSI code page cannot name is passed over', async () => {
+			const environment = fake({
+				platform: 'win32',
+				files: { 'C:\\Ελληνικά\\jdk-21\\bin\\java.exe': JAVA_DLL_MISSING, 'C:\\jdk-17\\bin\\java.exe': PROPERTIES_17 },
+				env: { JAVA_HOME: 'C:\\Ελληνικά\\jdk-21', PATH: 'C:\\jdk-17\\bin' },
+			});
+
+			const error = await rejection(findJava(undefined, environment));
+
+			assert.equal(
+				error.message,
+				'No Java 21 or newer was found in JAVA_HOME or on the PATH, only ' +
+					'C:\\Ελληνικά\\jdk-21\\bin\\java.exe (cannot start), C:\\jdk-17\\bin\\java.exe (Java 17). ' +
+					`${NON_ANSI_EXPLANATION} ` +
+					'Set the folder of a Java 21 or newer installation in the setting markdownSupport.java.home.',
+			);
 		});
 	});
 });
