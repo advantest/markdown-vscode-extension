@@ -59,6 +59,8 @@ describe('startsNoServer', () => {
 });
 
 describe('prepareLaunch', () => {
+	const LAUNCH = { command: '/jdk-21/bin/java', args: ['-jar', 'markdown-ls.jar'], cwd: path.dirname(BUNDLED.path) };
+
 	it('starts the server JAR with java -jar and no VM arguments, which JAVA_TOOL_OPTIONS can give', async () => {
 		const launch = await prepareLaunch(
 			BUNDLED,
@@ -66,7 +68,21 @@ describe('prepareLaunch', () => {
 			environment({ '/jdk-21/bin/java': PROPERTIES_21, '/ls/markdown-ls.jar': '' }),
 		);
 
-		assert.deepEqual(launch, { command: '/jdk-21/bin/java', args: ['-jar', '/ls/markdown-ls.jar'] });
+		assert.deepEqual(launch, LAUNCH);
+	});
+
+	it('starts Java in the folder of the JAR and names the JAR by its file name alone', async () => {
+		// On Windows, Java reads its command line in the ANSI code page, which cannot represent every path.
+		const jar = { path: path.join('/Ελληνικά-日本語', 'server', 'launcher.jar'), description: 'a declared server' };
+
+		const launch = await prepareLaunch(
+			jar,
+			settings({ javaHome: '/jdk-21' }),
+			environment({ '/jdk-21/bin/java': PROPERTIES_21, [jar.path]: '' }),
+		);
+
+		assert.deepEqual(launch.args, ['-jar', 'launcher.jar']);
+		assert.equal(launch.cwd, path.join('/Ελληνικά-日本語', 'server'));
 	});
 
 	it('starts the server with the Java found in JAVA_HOME or on the PATH if none is set', async () => {
@@ -76,7 +92,7 @@ describe('prepareLaunch', () => {
 			environment({ '/jdk-21/bin/java': PROPERTIES_21, '/ls/markdown-ls.jar': '' }, { JAVA_HOME: '/jdk-21' }),
 		);
 
-		assert.deepEqual(launch, { command: '/jdk-21/bin/java', args: ['-jar', '/ls/markdown-ls.jar'] });
+		assert.deepEqual(launch, LAUNCH);
 	});
 
 	it('fails, pointing to no setting, if the JAR does not exist', async () => {

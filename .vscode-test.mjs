@@ -2,7 +2,8 @@
 // The oldest VS Code the extension supports is used, so that a newer API cannot slip in unnoticed.
 
 import { defineConfig } from '@vscode/test-cli';
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cp } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { writeStubExtensions } from './test/stubExtensions.mjs';
 
@@ -27,6 +28,15 @@ function e2eUserData(name) {
 // Extensions without code that declare a server, installed next to the extension under test by some of the runs.
 const pinned = JSON.parse(readFileSync('package.json', 'utf8')).markdownSupport.defaultServer.version;
 const stubs = await writeStubExtensions(resolve('.vscode-test', 'stubs'), resolve('server', 'markdown-ls.jar'), pinned);
+
+// A copy of the bundled server in a folder whose name the ANSI code page of Windows cannot represent, as a user name
+// may hold, for the run e2e-non-ansi.
+const nonAnsi = resolve('.vscode-test', 'non-ansi-Ελληνικά-日本語');
+rmSync(nonAnsi, { recursive: true, force: true });
+if (existsSync(resolve('server', 'markdown-ls.jar'))) {
+	// Not cpSync, which mangles such a name in Node.js 25 on Windows.
+	await cp(resolve('server'), resolve(nonAnsi, 'server'), { recursive: true });
+}
 
 const common = {
 	version: '1.91.0',
@@ -67,5 +77,13 @@ export default defineConfig([
 		extensionDevelopmentPath: [resolve('.'), stubs.valid, stubs.unaccepted],
 		files: 'out/test/e2e-several/**/*.test.js',
 		launchArgs: ['--disable-extensions', `--user-data-dir=${e2eUserData('user-data-e2e-several')}`],
+	},
+	{
+		// With the server in a folder whose name the ANSI code page cannot represent.
+		...common,
+		label: 'e2e-non-ansi',
+		env: { MARKDOWN_SUPPORT_TEST_SERVER_JAR: resolve(nonAnsi, 'server', 'markdown-ls.jar') },
+		files: 'out/test/e2e-non-ansi/**/*.test.js',
+		launchArgs: ['--disable-extensions', `--user-data-dir=${e2eUserData('user-data-e2e-non-ansi')}`],
 	},
 ]);
