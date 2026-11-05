@@ -87,10 +87,27 @@ export function describeRendering(options: RenderingOptions = {}): void {
 				['a web page', 'https://example.com/page'],
 				['https://example.org/', 'https://example.org/'],
 				['a reference', '../other.md#other'],
+				...BARE_LINKS,
 				['1', '#fn-1'],
 				['the section', '#own-anchor'],
 				['↩', '#fnref-1'],
 			]);
+		});
+
+		it('links bare web and mail addresses, without the period ending the sentence', () => {
+			const links = rendered.content.links.map((link) => [link.text, link.href]);
+			for (const link of BARE_LINKS) {
+				assert.ok(
+					links.some(([text, href]) => text === link[0] && href === link[1]),
+					`${link[0]} links to ${link[1]}`,
+				);
+			}
+		});
+
+		it('leaves web addresses in code as text', () => {
+			assert.match(rendered.content.text, /https:\/\/example\.com\/code/);
+			assert.match(rendered.content.text, /https:\/\/example\.com\/block/);
+			assert.ok(!rendered.content.links.some((link) => /\/(code|block)$/.test(link.href)), 'no link into code');
 		});
 
 		it('finds the target of every link within the page', () => {
@@ -206,6 +223,14 @@ const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAgAAAAECAIAAAA8r+mnAAAAEUlEQVR4nGM4YSOCFTF
 const PNG_WIDTH = 8;
 const SVG_WIDTH = 40;
 const SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="${SVG_WIDTH}" height="20"><rect width="40" height="20" fill="teal"/></svg>`;
+/** The links the server makes of the bare addresses in the document, as flexmark's autolinks render them. */
+const BARE_LINKS = [
+	['https://example.com/auto', 'https://example.com/auto'],
+	['https://example.com/path', 'https://example.com/path'],
+	['https://example.com/search?q=a&b=c#part', 'https://example.com/search?q=a&b=c#part'],
+	['www.example.com', 'http://www.example.com'],
+	['someone@example.com', 'mailto:someone@example.com'],
+];
 const PUML = ['@startuml', 'class Shown [[https://example.com/diagram]]', '@enduml', ''].join('\n');
 
 const CONTENT = [
@@ -219,6 +244,9 @@ const CONTENT = [
 	'',
 	'Links to [another document](../other.md), [a heading](#rendering), [a web page](https://example.com/page),',
 	'<https://example.org/> and [a reference][other].',
+	'',
+	'Bare addresses: https://example.com/auto in a sentence, see https://example.com/path.',
+	'With a query https://example.com/search?q=a&b=c#part, without a scheme www.example.com, a mail someone@example.com.',
 	'',
 	'[other]: ../other.md#other "The other document"',
 	'',
@@ -250,10 +278,10 @@ const CONTENT = [
 	'',
 	'$$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$',
 	'',
-	'The `code` in a line.',
+	'The `https://example.com/code` in a line.',
 	'',
 	'```java',
-	'class Hello {}',
+	'class Hello {} // https://example.com/block',
 	'```',
 	'',
 	'```plantuml',
