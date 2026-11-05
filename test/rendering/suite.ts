@@ -156,6 +156,10 @@ export function describeRendering(options: RenderingOptions = {}): void {
 			assert.equal(rendered.figures, 2, 'one figure each for the code block and the diagram file');
 		});
 
+		it('keeps the link inside a diagram apart from the links of the text', () => {
+			assert.deepEqual(rendered.content.figureLinks, ['https://example.com/diagram']);
+		});
+
 		it('shows no comment', () => {
 			assert.doesNotMatch(rendered.content.text, /comment nobody sees|<!--/);
 		});
@@ -202,7 +206,7 @@ const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAgAAAAECAIAAAA8r+mnAAAAEUlEQVR4nGM4YSOCFTF
 const PNG_WIDTH = 8;
 const SVG_WIDTH = 40;
 const SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="${SVG_WIDTH}" height="20"><rect width="40" height="20" fill="teal"/></svg>`;
-const PUML = ['@startuml', 'class Shown', '@enduml', ''].join('\n');
+const PUML = ['@startuml', 'class Shown [[https://example.com/diagram]]', '@enduml', ''].join('\n');
 
 const CONTENT = [
 	'# Rendering {#rendering}',
