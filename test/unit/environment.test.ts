@@ -54,6 +54,16 @@ describe('the view of PlantUML and Graphviz', () => {
 		assert.match(text, /^Graphviz version: unknown$/m);
 	});
 
+	it('says "unknown" where the server leaves out what it does not know', () => {
+		const { version, securityProfile, urlAllowList } = ENVIRONMENT.plantUml;
+		const plantUml = { version, securityProfile, urlAllowList };
+
+		const text = plantUmlText({ environment: { ...ENVIRONMENT, plantUml } });
+
+		assert.match(text, /^Graphviz dot executable: unknown$/m);
+		assert.match(text, /^Graphviz version: unknown$/m);
+	});
+
 	it('says that the server is not running', () => {
 		assert.match(plantUmlText({ notRunning: true }), /^The language server is not running/);
 	});
