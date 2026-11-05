@@ -56,7 +56,7 @@ export interface RenderedMessage {
 export interface PageContent {
 	/** The text as shown, without what is hidden. */
 	readonly text: string;
-	/** The links, their targets as written in the HTML. */
+	/** The links of the text, not those inside figures drawn as SVG, their targets as written in the HTML. */
 	readonly links: readonly { readonly text: string; readonly href: string }[];
 	/** The tables: the texts of their header cells and the number of their other rows. */
 	readonly tables: readonly { readonly headers: readonly string[]; readonly rows: number }[];
@@ -74,6 +74,8 @@ export interface PageContent {
 	readonly elements: Readonly<Record<string, number>>;
 	/** The texts of the figures drawn as SVG. */
 	readonly figures: readonly string[];
+	/** The targets of the links inside the figures drawn as SVG. */
+	readonly figureLinks: readonly string[];
 }
 
 /** A part of the computed style of an element. */

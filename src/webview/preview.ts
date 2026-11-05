@@ -108,8 +108,8 @@ async function refresh(version: number, sources: readonly string[]): Promise<voi
 function pageContent(): PageContent {
 	return {
 		text: app.innerText,
-		links: Array.from(app.querySelectorAll('a[href]'), (link) => ({
-			text: (link as HTMLElement).innerText.trim(),
+		links: Array.from(app.querySelectorAll<HTMLAnchorElement>('a[href]:not(svg a)'), (link) => ({
+			text: link.innerText.trim(),
 			href: link.getAttribute('href') ?? '',
 		})),
 		tables: Array.from(app.querySelectorAll('table'), (table) => ({
@@ -127,6 +127,10 @@ function pageContent(): PageContent {
 			return counts;
 		}, {}),
 		figures: Array.from(app.querySelectorAll('figure > svg'), (svg) => svg.textContent ?? ''),
+		figureLinks: Array.from(
+			app.querySelectorAll('svg a'),
+			(link) => link.getAttribute('href') ?? link.getAttribute('xlink:href') ?? '',
+		),
 	};
 }
 
