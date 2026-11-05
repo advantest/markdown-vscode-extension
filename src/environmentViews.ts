@@ -1,12 +1,18 @@
 import * as vscode from 'vscode';
-import { dependenciesText, type EnvironmentAnswer, plantUmlText } from './environment';
+import { dependenciesText, type EnvironmentAnswer, type ExtensionVersion, plantUmlText } from './environment';
 
 /** The scheme of the read-only documents that show what the language server runs with. */
 export const ENVIRONMENT_SCHEME = 'markdown-support-info';
 
-const VIEWS: Record<string, (answer: EnvironmentAnswer) => string> = {
-	'/PlantUML and Graphviz': plantUmlText,
-	'/Dependencies': dependenciesText,
+/** What a view shows: the server's answer, and the extensions whose server runs. */
+export interface ViewInput {
+	answer: EnvironmentAnswer;
+	extensions: ExtensionVersion[];
+}
+
+const VIEWS: Record<string, (input: ViewInput) => string> = {
+	'/PlantUML and Graphviz': (input) => plantUmlText(input.answer),
+	'/Dependencies': (input) => dependenciesText(input.answer, input.extensions),
 };
 
 export const PLANTUML_VIEW = vscode.Uri.from({ scheme: ENVIRONMENT_SCHEME, path: '/PlantUML and Graphviz' });
@@ -20,7 +26,7 @@ export class EnvironmentViews implements vscode.TextDocumentContentProvider, vsc
 	private readonly changes = new vscode.EventEmitter<vscode.Uri>();
 	readonly onDidChange = this.changes.event;
 
-	constructor(private readonly ask: () => Promise<EnvironmentAnswer>) {}
+	constructor(private readonly ask: () => Promise<ViewInput>) {}
 
 	async provideTextDocumentContent(uri: vscode.Uri): Promise<string> {
 		const view = VIEWS[uri.path];

@@ -1,7 +1,13 @@
 import * as vscode from 'vscode';
 import { LanguageClient, type LanguageClientOptions, type ServerOptions } from 'vscode-languageclient/node';
-import { ENVIRONMENT_REQUEST, type EnvironmentAnswer, type ServerEnvironment } from './environment';
-import { DEPENDENCIES_VIEW, ENVIRONMENT_SCHEME, EnvironmentViews, PLANTUML_VIEW } from './environmentViews';
+import { ENVIRONMENT_REQUEST, type ExtensionVersion, extensionVersion, type ServerEnvironment } from './environment';
+import {
+	DEPENDENCIES_VIEW,
+	ENVIRONMENT_SCHEME,
+	EnvironmentViews,
+	PLANTUML_VIEW,
+	type ViewInput,
+} from './environmentViews';
 import { nodeJavaEnvironment } from './java';
 import { PreviewManager, type Rendered, type RenderResult } from './preview/manager';
 import { reportDeclaredServerProblem, reportStartFailure, type ReportTarget } from './report';
@@ -35,6 +41,8 @@ let output: vscode.LogOutputChannel | undefined;
 let previews: PreviewManager | undefined;
 let environmentViews: EnvironmentViews | undefined;
 let extension: ExtensionInfo | undefined;
+/** This extension as the view "Dependencies" names it. */
+let ownExtension: ExtensionVersion = { name: NAME, version: 'unknown' };
 /** Whether the tests asked for no server, so that the extension looks for no Java either. */
 let noServer = false;
 /** Starts and stops run one after the other, so that a restart never overtakes the start before it. */
@@ -54,6 +62,7 @@ export function activate(context: vscode.ExtensionContext): MarkdownSupportApi {
 		packageJSON: context.extension.packageJSON,
 		development: context.extensionMode !== vscode.ExtensionMode.Production,
 	};
+	ownExtension = extensionVersion(context.extension.packageJSON, context.extension.id);
 	choice = undefined;
 	noServer = startsNoServer(context.extensionMode === vscode.ExtensionMode.Test, process.env);
 	output = vscode.window.createOutputChannel(NAME, { log: true });
@@ -152,17 +161,19 @@ async function start(): Promise<void> {
 	previews?.refreshAll();
 }
 
-async function askEnvironment(): Promise<EnvironmentAnswer> {
+async function askEnvironment(): Promise<ViewInput> {
 	// A start or restart in progress is waited for.
 	await pending;
-	const running = client;
-	if (running === undefined || !running.isRunning()) {
-		return { notRunning: true };
+	const own = ownExtension;
+	const extensions = running?.declaredBy ? [own, running.declaredBy] : [own];
+	const started = client;
+	if (started === undefined || !started.isRunning()) {
+		return { answer: { notRunning: true }, extensions };
 	}
 	try {
-		return { environment: await running.sendRequest<ServerEnvironment>(ENVIRONMENT_REQUEST) };
+		return { answer: { environment: await started.sendRequest<ServerEnvironment>(ENVIRONMENT_REQUEST) }, extensions };
 	} catch (error) {
-		return { error: error instanceof Error ? error.message : String(error) };
+		return { answer: { error: error instanceof Error ? error.message : String(error) }, extensions };
 	}
 }
 

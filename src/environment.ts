@@ -50,8 +50,37 @@ export function plantUmlText(answer: EnvironmentAnswer): string {
 	].join('\n');
 }
 
-/** The text of the view "Dependencies": the libraries, their versions aligned. */
-export function dependenciesText(answer: EnvironmentAnswer): string {
+/** The text of the view "Dependencies": the extensions, then the libraries of the server, versions aligned per group. */
+export function dependenciesText(answer: EnvironmentAnswer, extensions: readonly ExtensionVersion[]): string {
+	return [
+		'Extensions:',
+		'',
+		...aligned(extensions),
+		'',
+		'Libraries of the language server:',
+		'',
+		librariesText(answer),
+	].join('\n');
+}
+
+/** An extension shown on the view "Dependencies". */
+export interface ExtensionVersion {
+	name: string;
+	version: string;
+}
+
+/** Names an extension by the display name in its package.json, else its name, else its id. */
+export function extensionVersion(packageJSON: unknown, id: string): ExtensionVersion {
+	const json = (typeof packageJSON === 'object' && packageJSON !== null ? packageJSON : {}) as Record<string, unknown>;
+	const text = (value: unknown): string | undefined =>
+		typeof value === 'string' && value.trim() !== '' ? value : undefined;
+	return {
+		name: text(json.displayName) ?? text(json.name) ?? id,
+		version: text(json.version) ?? 'unknown',
+	};
+}
+
+function librariesText(answer: EnvironmentAnswer): string {
 	if (!('environment' in answer)) {
 		return failure(answer);
 	}
@@ -59,13 +88,12 @@ export function dependenciesText(answer: EnvironmentAnswer): string {
 	if (libraries.length === 0) {
 		return 'The language server names none of the libraries it runs with.\n';
 	}
-	const width = Math.max(...libraries.map((library) => library.name.length));
-	return [
-		'The libraries the language server runs with:',
-		'',
-		...libraries.map((library) => `${library.name.padEnd(width)}  ${known(library.version)}`),
-		'',
-	].join('\n');
+	return [...aligned(libraries), ''].join('\n');
+}
+
+function aligned(entries: readonly { name: string; version: string | null | undefined }[]): string[] {
+	const width = Math.max(...entries.map((entry) => entry.name.length));
+	return entries.map((entry) => `${entry.name.padEnd(width)}  ${known(entry.version)}`);
 }
 
 function failure(answer: { notRunning: true } | { error: string }): string {

@@ -1,5 +1,6 @@
 import * as path from 'node:path';
 import { acceptedVersion, accepts, declaringExtensions, type InstalledExtension, readDeclaration } from './declaration';
+import { type ExtensionVersion, extensionVersion } from './environment';
 import { findJava, JavaNotFoundError, type JavaEnvironment } from './java';
 import { SECTION, type Settings } from './settings';
 
@@ -14,6 +15,8 @@ export interface ServerLaunch {
 export interface ServerJar {
 	path: string;
 	description: string;
+	/** The extension that declares the server, if another one does. */
+	declaredBy?: ExtensionVersion;
 }
 
 /** What {@link serverJar} needs of the extension, so that it can be tested without VS Code. */
@@ -126,6 +129,7 @@ export async function chooseServer(
 		jar: {
 			path: declaration.jar,
 			description: `markdown-ls ${declaration.markdownLs}, declared by the extension ${declaration.id}`,
+			declaredBy: extensionVersion(declaring[0].packageJSON, declaration.id),
 		},
 	};
 }
