@@ -105,10 +105,11 @@ links to two read-only views of what the server runs with, which the command pal
 | Command                                        | Title                      | Shows                                                                 |
 |------------------------------------------------|----------------------------|-----------------------------------------------------------------------|
 | `markdownSupport.environment.showPlantUml`     | Show PlantUML and Graphviz | PlantUML's version, security profile, URL allowlist; Graphviz's `dot` |
-| `markdownSupport.environment.showDependencies` | Show Dependencies          | The libraries the server runs with, and their versions                |
+| `markdownSupport.environment.showDependencies` | Show Dependencies          | The extensions, the libraries of the server, and their versions       |
 
 Each view asks the server whenever it is opened; running its command again refreshes it. Without a
-running server, the view says so.
+running server, the view says so. "Dependencies" lists this extension first and, where the server that runs
+is one another extension declares, that extension too, each with its version.
 
 ## Building
 
