@@ -153,6 +153,7 @@
     "compile": "npm run check && node esbuild.mjs",
     "watch": "node esbuild.mjs --watch",
     "compile-tests": "tsc",
+    "prepare": "npm run compile && npm run compile-tests",
     "pretest": "npm run compile && npm run compile-tests && npm run lint",
     "test": "npm run test:unit && npm run test:integration",
     "posttest": "npm run coverage",

@@ -1,0 +1,10 @@
+# What a dependency on the extension delivers: the extension as built, and the rendering tests another extension runs.
+# The package of the extension itself is made by vsce, which follows .vscodeignore.
+/*
+!/dist/
+!/images/
+!/out/
+/out/*
+!/out/test/
+/out/test/*
+!/out/test/rendering/
