@@ -4,6 +4,7 @@
   "description": "Validation of Markdown documents, provided by the language server markdown-ls.",
   "version": "1.0.0-alpha",
   "publisher": "advantest",
+  "license": "BSD-3-Clause",
   "private": true,
   "engines": {
     "vscode": "^1.91.0"
@@ -162,7 +163,7 @@
     "coverage": "node scripts/coverage.mjs",
     "fetch-server": "esbuild scripts/fetchServer.ts --bundle --platform=node --target=node20 --outfile=out/fetchServer.js --log-level=warning && node out/fetchServer.js",
     "vscode:prepublish": "npm run check && npm run fetch-server && node esbuild.mjs --production",
-    "package": "vsce package --no-dependencies --skip-license --allow-missing-repository"
+    "package": "vsce package --no-dependencies --allow-missing-repository"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

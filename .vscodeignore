@@ -2,6 +2,7 @@
 !dist/extension.js
 !package.json
 !README.md
+!LICENSE
 !dist/media/**
 !images/**
 !server/markdown-ls.jar
