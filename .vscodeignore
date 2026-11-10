@@ -4,6 +4,7 @@
 !README.md
 !LICENSE
 !ThirdPartyNotices.txt
+!bom.json
 !dist/media/**
 !images/**
 !server/markdown-ls.jar

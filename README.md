@@ -136,6 +136,10 @@ the VSIX ships besides the server, with its licence texts. These are the npm pac
 `dist/extension.js`, as esbuild reports them in `out/bundled.json`, the packages copied into `dist/media/`, and
 the preview's stylesheet `media/default.css`, whose licence texts lie in `third-party/default.css/`.
 
+`npm run sbom`, which `npm run package` runs too, writes `bom.json`, the CycloneDX SBOM of the VSIX. It takes the
+extension's npm dependencies from `cyclonedx-npm`, adds the server with all it holds from `server/bom.json`, and
+the preview's stylesheet.
+
 ## Running
 
 Open the repository in VS Code and start the launch configuration "Run Extension". It opens a second

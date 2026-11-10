@@ -22,3 +22,6 @@ server/
 
 # The third-party notices, written by "npm run notices" and packaged with the extension
 ThirdPartyNotices.txt
+
+# The SBOM, written by "npm run sbom" and packaged with the extension
+bom.json
