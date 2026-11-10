@@ -3,6 +3,7 @@
 !package.json
 !README.md
 !LICENSE
+!ThirdPartyNotices.txt
 !dist/media/**
 !images/**
 !server/markdown-ls.jar

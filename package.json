@@ -162,7 +162,8 @@
     "test:integration": "vscode-test --coverage --coverage-reporter json --coverage-output coverage/integration",
     "coverage": "node scripts/coverage.mjs",
     "fetch-server": "esbuild scripts/fetchServer.ts --bundle --platform=node --target=node20 --outfile=out/fetchServer.js --log-level=warning && node out/fetchServer.js",
-    "vscode:prepublish": "npm run check && npm run fetch-server && node esbuild.mjs --production",
+    "notices": "esbuild scripts/thirdPartyNotices.ts --bundle --platform=node --target=node20 --outfile=out/thirdPartyNotices.js --log-level=warning && node out/thirdPartyNotices.js",
+    "vscode:prepublish": "npm run check && npm run fetch-server && node esbuild.mjs --production && npm run notices",
     "package": "vsce package --no-dependencies --allow-missing-repository"
   },
   "devDependencies": {

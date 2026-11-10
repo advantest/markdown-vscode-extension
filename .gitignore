@@ -19,3 +19,6 @@ coverage/
 
 # The language server, fetched by "npm run fetch-server" and bundled with the extension
 server/
+
+# The third-party notices, written by "npm run notices" and packaged with the extension
+ThirdPartyNotices.txt

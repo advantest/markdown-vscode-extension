@@ -131,6 +131,11 @@ environment variable `MARKDOWN_LS_REPOSITORY`, a folder or an `http(s)` address,
 repository `~/.m2/repository`. It checks that the JAR is of the pinned version. A snapshot can only be
 taken from a folder, e.g. after `mvn install` in `markdown-ls`.
 
+`npm run notices`, which `npm run package` runs too, writes `ThirdPartyNotices.txt`: every third-party component
+the VSIX ships besides the server, with its licence texts. These are the npm packages bundled into
+`dist/extension.js`, as esbuild reports them in `out/bundled.json`, the packages copied into `dist/media/`, and
+the preview's stylesheet `media/default.css`, whose licence texts lie in `third-party/default.css/`.
+
 ## Running
 
 Open the repository in VS Code and start the launch configuration "Run Extension". It opens a second
@@ -195,6 +200,7 @@ The suite writes its documents and files into a temporary folder itself. `npm ci
 
 This work is made available under the terms of the BSD 3-Clause License.
 The licence accompanies the extension: [LICENSE](LICENSE).
+The third-party components it ships come under their own licences, listed in `ThirdPartyNotices.txt`.
 
 ## Copyright
 
