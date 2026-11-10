@@ -1,3 +1,7 @@
+<!--
+  Copyright © 2026 Advantest Europe GmbH
+  SPDX-License-Identifier: BSD-3-Clause
+-->
 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#424242" stroke-linejoin="round">
   <path d="M0.5 8c3.3-5.6 11.7-5.6 15 0c-3.3 5.6-11.7 5.6-15 0z"/>
   <circle cx="8" cy="8" r="2.5"/>
