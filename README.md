@@ -203,7 +203,7 @@ The suite writes its documents and files into a temporary folder itself. `npm ci
 ## License
 
 This work is made available under the terms of the BSD 3-Clause License.
-The licence accompanies the extension: [LICENSE](LICENSE).
+The licence accompanies the extension, in the file `LICENSE`.
 The third-party components it ships come under their own licences, listed in `ThirdPartyNotices.txt`.
 
 ## Copyright
