@@ -184,3 +184,13 @@ require('markdown-support/out/test/rendering/suite').describeRendering({
 ```
 
 The suite writes its documents and files into a temporary folder itself. `npm ci` runs `prepare` here too.
+
+## License
+
+This work is made available under the terms of the BSD 3-Clause License.
+The licence accompanies the extension: [LICENSE](LICENSE).
+
+## Copyright
+
+Copyright (c) 2026, Advantest Europe GmbH.
+All rights reserved.
