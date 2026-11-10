@@ -144,6 +144,10 @@ npm test
 runs the unit tests, the tests inside VS Code (which is downloaded into `.vscode-test/` the first
 time) and reports the coverage of both together; the HTML report is written to `coverage/html`.
 
+Before them, `npm run lint` runs ESLint, which also checks that every TypeScript, JavaScript and CSS file of
+our own starts with the copyright notice and the SPDX identifier of the licence; `npx eslint --fix` adds a
+missing one with the current year.
+
 The tests inside VS Code that need no server set the environment variable `MARKDOWN_SUPPORT_TEST_NO_SERVER`,
 so that the extension neither looks for Java nor starts the server; they need no Java and behave the same on
 every machine. The extension reads the variable only while it is tested.
