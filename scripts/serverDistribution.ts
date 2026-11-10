@@ -111,13 +111,20 @@ export function manifestAttribute(manifest: string, name: string): string | unde
 }
 
 /**
- * Takes the server's JAR and the libraries next to it out of the distribution, without the distribution's own
- * folder, and checks that the JAR is of the version pinned.
+ * What the extension takes from the distribution: the server's JAR and the libraries next to it, and what the
+ * licences of these libraries ask to be passed on with them — the server's licence, the list of the third-party
+ * components, their licences and notices, the sources of the components under the GPL, and the bill of materials.
+ */
+const TAKEN = [/^markdown-ls\.jar$/, /^lib\/[^/]+\.jar$/, /^(LICENSE|THIRD-PARTY\.txt|bom\.json)$/, /^(licenses|notices|sources)\//];
+
+/**
+ * Takes what the extension bundles out of the distribution, without the distribution's own folder, and checks that
+ * the JAR is of the version pinned.
  */
 export async function unpackServer(distribution: Buffer, version: string): Promise<ServerFile[]> {
 	const selected = (await readZip(distribution))
 		.map((entry) => ({ entry, path: entry.name.replace(/^[^/]+\//, '') }))
-		.filter(({ entry, path }) => !entry.name.endsWith('/') && (path === JAR || /^lib\/[^/]+\.jar$/.test(path)));
+		.filter(({ entry, path }) => !entry.name.endsWith('/') && TAKEN.some((taken) => taken.test(path)));
 	const files: ServerFile[] = [];
 	for (const { entry, path } of selected) {
 		files.push({ path, data: await entry.read() });

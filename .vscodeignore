@@ -7,3 +7,8 @@
 !images/**
 !server/markdown-ls.jar
 !server/lib/*.jar
+!server/LICENSE
+!server/THIRD-PARTY.txt
+!server/licenses/**
+!server/notices/**
+!server/sources/**

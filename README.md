@@ -24,10 +24,12 @@ brings its results into the editor:
   named with others, e.g. Greek or Japanese ones.
 
 The server `markdown-ls` comes with the extension, in its folder `server/`: the JAR and, in `lib/`, the
-libraries it needs. The extension starts it with `java -jar <JAR file name>` in the folder of the JAR, so
-that the path to it may hold any character, and logs which server it starts in the
-output channel "Markdown Support". Options for the Java VM, e.g. to debug the server, are taken from the
-environment variable `JAVA_TOOL_OPTIONS`, which every Java VM reads.
+libraries it needs. Next to them lie the server's `LICENSE` and `THIRD-PARTY.txt`, which lists the
+libraries with their licences, the texts of these licences in `licenses/`, the libraries' notices in
+`notices/`, and in `sources/` the source of the libraries under the GPL. The extension starts the server
+with `java -jar <JAR file name>` in the folder of the JAR, so that the path to it may hold any character,
+and logs which server it starts in the output channel "Markdown Support". Options for the Java VM, e.g. to
+debug the server, are taken from the environment variable `JAVA_TOOL_OPTIONS`, which every Java VM reads.
 
 ## A server another extension declares
 

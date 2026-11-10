@@ -152,20 +152,33 @@ describe('unpackServer', () => {
 			'markdown-ls-1.2.3/lib/one.jar': 'one',
 			'markdown-ls-1.2.3/lib/two.jar': 'two',
 			'markdown-ls-1.2.3/markdown-ls.jar': await jar(version),
+			'markdown-ls-1.2.3/LICENSE': 'licence',
+			'markdown-ls-1.2.3/THIRD-PARTY.txt': 'list',
+			'markdown-ls-1.2.3/bom.json': '{}',
+			'markdown-ls-1.2.3/licenses/': '',
+			'markdown-ls-1.2.3/licenses/apache.txt': 'apache',
+			'markdown-ls-1.2.3/notices/one-jar/NOTICE': 'notice',
+			'markdown-ls-1.2.3/sources/one-sources.jar': 'source',
 		});
 
-	it('takes the JAR and its libraries, without the folder of the distribution', async () => {
+	it('takes the JAR, its libraries and their licences, without the folder of the distribution', async () => {
 		const files = await unpackServer(await distribution('1.2.3'), '1.2.3');
 
 		assert.deepEqual(
 			files.map((file) => [file.path, file.data.length > 0]),
 			[
+				['bom.json', true],
 				['lib/one.jar', true],
 				['lib/two.jar', true],
+				['LICENSE', true],
+				['licenses/apache.txt', true],
 				['markdown-ls.jar', true],
+				['notices/one-jar/NOTICE', true],
+				['sources/one-sources.jar', true],
+				['THIRD-PARTY.txt', true],
 			],
 		);
-		assert.equal(files[0].data.toString(), 'one');
+		assert.equal(files.find((file) => file.path === 'lib/one.jar')?.data.toString(), 'one');
 	});
 
 	it('fails if the server is of another version than the one pinned', async () => {

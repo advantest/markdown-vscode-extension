@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-// Fetches the distribution of markdown-ls whose version package.json pins and unpacks the server's JAR and its
-// libraries into server/, where the extension starts it from and whence it is packaged.
+// Fetches the distribution of markdown-ls whose version package.json pins and unpacks the server's JAR, its
+// libraries and their licences into server/, where the extension starts it from and whence it is packaged.
 //
 //   npm run fetch-server
 //
@@ -30,7 +30,7 @@ async function main(): Promise<void> {
 		await mkdir(path.dirname(target), { recursive: true });
 		await writeFile(target, file.data);
 	}
-	console.log(`Unpacked markdown-ls ${coordinates.version} from ${location} into ${TARGET}/, ${files.length} JARs.`);
+	console.log(`Unpacked markdown-ls ${coordinates.version} from ${location} into ${TARGET}/, ${files.length} files.`);
 }
 
 main().catch((error: unknown) => {
