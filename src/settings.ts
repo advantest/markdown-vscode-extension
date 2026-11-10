@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Advantest Europe GmbH
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 /** The section of the extension's settings: every key below is prefixed with it. */
 export const SECTION = 'markdownSupport';
 

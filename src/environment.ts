@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Advantest Europe GmbH
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 /** A library the language server runs with. */
 export interface Library {
 	name: string;

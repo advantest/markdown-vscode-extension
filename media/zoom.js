@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Advantest Europe GmbH
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 let imageSelector = 'figure, :not(figure) > img';
 let factor = 1.01;
 var scale = 1;

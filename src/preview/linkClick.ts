@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Advantest Europe GmbH
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 /** Just as much of a clicked element as the page needs to find the link it is in. */
 interface ClickedElement {
 	closest(selector: string): { getAttribute(name: string): string | null } | null;

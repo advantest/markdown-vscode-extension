@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Advantest Europe GmbH
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 import { execFile } from 'node:child_process';
 import { stat } from 'node:fs/promises';
 import * as path from 'node:path';

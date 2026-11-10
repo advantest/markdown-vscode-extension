@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Advantest Europe GmbH
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 /** What a link in the preview leads to, as FluentMark tells its links apart. */
 export type Link =
 	/** An anchor in the document itself; empty for the top of it. */

@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Advantest Europe GmbH
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 // Fetches the distribution of the language server markdown-ls and takes from it what the extension bundles.
 
 import { readFile } from 'node:fs/promises';

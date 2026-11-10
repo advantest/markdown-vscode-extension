@@ -1,4 +1,9 @@
 /*
+ * Copyright © 2026 Advantest Europe GmbH
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
+/*
  * The script of the preview page. It takes the part of FluentMark's Vue application: it puts the HTML the extension
  * sends into the page, then highlights the code with highlight.js, typesets the formulas with MathJax and lets the
  * images zoom. A Ctrl- or Cmd-click on an element leads to its source.

@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Advantest Europe GmbH
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 import * as assert from 'node:assert/strict';
 import * as vscode from 'vscode';
 

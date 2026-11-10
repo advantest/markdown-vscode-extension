@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Advantest Europe GmbH
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 function scrollToElement(sourceOffset, sourceLength) {
 	const candidates = Array.from(document.querySelectorAll('[source-offset]'))
 		.filter(el => {

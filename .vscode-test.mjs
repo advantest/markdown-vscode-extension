@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Advantest Europe GmbH
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 // Runs the tests inside VS Code, against the bundled extension in dist/.
 // The oldest VS Code the extension supports is used, so that a newer API cannot slip in unnoticed.
 

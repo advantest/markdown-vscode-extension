@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Advantest Europe GmbH
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 /** What the page of the preview needs to know about where it is shown. */
 export interface PageResources {
 	/** The source of the content security policy that stands for the resources of the webview. */

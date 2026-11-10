@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Advantest Europe GmbH
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 // Fetches the distribution of markdown-ls whose version package.json pins and unpacks the server's JAR and its
 // libraries into server/, where the extension starts it from and whence it is packaged.
 //

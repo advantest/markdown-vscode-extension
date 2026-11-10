@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Advantest Europe GmbH
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 figure, :not(figure) > img {
 	transform-origin: 0 0;
 	transform: scale(1) translate(0px, 0px);

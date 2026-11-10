@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Advantest Europe GmbH
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 /** The messages between the extension and the page of the preview. */
 
 /** New content for the page: the HTML the server rendered from the given version of the document. */

@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Advantest Europe GmbH
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 import { posix } from 'node:path';
 import * as vscode from 'vscode';
 import { SECTION } from '../settings';

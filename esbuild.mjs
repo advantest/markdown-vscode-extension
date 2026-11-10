@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Advantest Europe GmbH
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 // Bundles the extension and everything it imports into dist/extension.js and the script of the preview page
 // into dist/media/preview.js, and copies what else the preview page loads into dist/media.
 //

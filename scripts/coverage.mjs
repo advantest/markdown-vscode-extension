@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Advantest Europe GmbH
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 // Merges the coverage of the unit tests and of the tests in VS Code into one report, as text and as HTML in
 // coverage/html. Both runs write Istanbul's coverage-final.json below coverage/; only the extension's own sources in
 // src/ are counted, not the libraries bundled with it.

@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Advantest Europe GmbH
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 // Builds the extensions the end-to-end tests install next to the extension under test: extensions without code that
 // only declare a language server in their package.json, under markdownSupport.server, as D-49 describes.
 //

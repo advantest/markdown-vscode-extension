@@ -1,3 +1,8 @@
+/*
+ * Copyright © 2026 Advantest Europe GmbH
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 import { LaunchError } from './server';
 
 /** What reporting a failure needs of VS Code, so that it can be tested without it. */
