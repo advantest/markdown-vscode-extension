@@ -4,10 +4,9 @@
  */
 
 import * as assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
 import * as vscode from 'vscode';
 import type { MarkdownSupportApi } from '../../src/extension';
-import { BUNDLED_JAR, DIAGNOSTICS_TIMEOUT, EXTENSION_ID, JAVA_HOME, SKIPPED } from './support';
+import { BUNDLED_JAR, DIAGNOSTICS_TIMEOUT, EXTENSION_ID, requireJavaAndServer } from './support';
 
 // Asks the bundled language server what it runs with.
 
@@ -15,10 +14,7 @@ describe('the views of what the language server markdown-ls runs with', function
 	this.timeout(DIAGNOSTICS_TIMEOUT + 10_000);
 
 	before(async function () {
-		if (!JAVA_HOME || !existsSync(BUNDLED_JAR)) {
-			console.log(`    ${SKIPPED}`);
-			this.skip();
-		}
+		requireJavaAndServer(BUNDLED_JAR);
 		await vscode.workspace.openTextDocument({ language: 'markdown', content: '# Title\n' });
 		const api = await vscode.extensions.getExtension<MarkdownSupportApi>(EXTENSION_ID)!.activate();
 		assert.ok(await api.runningServer(), 'the server runs');

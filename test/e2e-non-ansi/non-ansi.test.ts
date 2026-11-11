@@ -4,13 +4,12 @@
  */
 
 import * as assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import type { MarkdownSupportApi } from '../../src/extension';
-import { DIAGNOSTICS_TIMEOUT, diagnosticsFrom, EXTENSION_ID, JAVA_HOME, SKIPPED } from '../e2e/support';
+import { DIAGNOSTICS_TIMEOUT, diagnosticsFrom, EXTENSION_ID, requireJavaAndServer } from '../e2e/support';
 
 // Runs the extension with a copy of the bundled server, which .vscode-test.mjs puts into a folder whose name the ANSI
 // code page of Windows cannot represent, e.g. Windows-1252, as the folder of a user may be named.
@@ -23,10 +22,7 @@ describe('the extension with its server in a folder whose name the ANSI code pag
 	let directory: string | undefined;
 
 	before(async function () {
-		if (!JAVA_HOME || !existsSync(JAR)) {
-			console.log(`    ${SKIPPED}`);
-			this.skip();
-		}
+		requireJavaAndServer(JAR);
 		directory = await mkdtemp(path.join(tmpdir(), 'markdown-support-e2e-non-ansi-'));
 	});
 

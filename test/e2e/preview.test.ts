@@ -4,14 +4,13 @@
  */
 
 import * as assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import type { MarkdownSupportApi } from '../../src/extension';
 import { describeRendering, RENDER_TIMEOUT, renderingOf } from '../rendering/suite';
-import { BUNDLED_JAR, EXTENSION_ID, JAVA_HOME, SKIPPED } from './support';
+import { BUNDLED_JAR, EXTENSION_ID, requireJavaAndServer } from './support';
 
 // Shows the preview of a document as the language server bundled with the extension renders it.
 
@@ -41,10 +40,7 @@ describe('the preview with the language server markdown-ls', function () {
 	let directory: string | undefined;
 
 	before(async function () {
-		if (!JAVA_HOME || !existsSync(BUNDLED_JAR)) {
-			console.log(`    ${SKIPPED}`);
-			this.skip();
-		}
+		requireJavaAndServer(BUNDLED_JAR);
 		directory = await mkdtemp(path.join(tmpdir(), 'markdown-support-e2e-preview-'));
 	});
 

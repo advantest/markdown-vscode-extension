@@ -3,13 +3,14 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+import { existsSync } from 'node:fs';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 
 /*
  * What the end-to-end tests share. They run the extension against a real language server, which needs a Java 21,
  * named by the environment variable below, and the server, fetched by "npm run fetch-server"; without them the tests
- * are skipped.
+ * fail, so that a run lacking either cannot pass.
  */
 export const JAVA_HOME = process.env.MARKDOWN_SUPPORT_TEST_JAVA_HOME;
 /** The root of this repository, the folder of the extension under test. */
@@ -17,7 +18,16 @@ export const ROOT = path.resolve(__dirname, '..', '..', '..');
 /** The server bundled with the extension under test. */
 export const BUNDLED_JAR = path.join(ROOT, 'server', 'markdown-ls.jar');
 export const EXTENSION_ID = 'advantest.markdown-support';
-export const SKIPPED = 'Skipped: set MARKDOWN_SUPPORT_TEST_JAVA_HOME and run npm run fetch-server to run these tests.';
+
+/** Fails the tests of the calling hook unless a Java is named and the server's JAR is there. */
+export function requireJavaAndServer(jar: string): void {
+	if (!JAVA_HOME) {
+		throw new Error('MARKDOWN_SUPPORT_TEST_JAVA_HOME names no Java 21 to run the language server with.');
+	}
+	if (!existsSync(jar)) {
+		throw new Error(`The language server ${jar || '(none)'} is missing; run npm run fetch-server.`);
+	}
+}
 
 export const DIAGNOSTICS_TIMEOUT = 60_000;
 
