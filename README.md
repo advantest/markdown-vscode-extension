@@ -168,9 +168,9 @@ The end-to-end tests run the extension against the server bundled with it. The r
 copy of it in a folder named with Greek and Japanese characters. The runs `e2e-declared` and
 `e2e-several` install extensions without code next to it, which `test/stubExtensions.mjs` builds into
 `.vscode-test/stubs/` and which declare a server: one that is started in place of the bundled server, and
-two, so that the bundled server is started. They are skipped unless the
-server has been fetched with `npm run fetch-server` and an environment variable names the folder of a
-Java 21, which the test run sets in `markdownSupport.java.home` before VS Code starts:
+two, so that the bundled server is started. They fail unless the server has been fetched with
+`npm run fetch-server` and an environment variable names the folder of a Java 21, which the test run sets in
+`markdownSupport.java.home` before VS Code starts:
 
 ```sh
 MARKDOWN_SUPPORT_TEST_JAVA_HOME=/path/to/jdk-21
