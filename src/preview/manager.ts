@@ -169,7 +169,7 @@ class Preview {
 		}
 		void this.imageStamps().then((imageStamps) => {
 			if (this.pageReady && this.shown === shown && !this.disposed) {
-				this.post({ type: 'update', version: shown.version, html: shown.html, imageStamps });
+				this.post({ type: 'update', uri: this.uri.toString(), version: shown.version, html: shown.html, imageStamps });
 			}
 		});
 	}
@@ -232,6 +232,10 @@ class Preview {
 				this.show();
 				break;
 			case 'rendered': {
+				// The page may still finish the content of the document shown before, after the preview moved on.
+				if (message.uri !== this.uri.toString()) {
+					break;
+				}
 				this.rendered = true;
 				this.reveals.splice(0).forEach((reveal) => this.post(reveal));
 				const rendered: Rendered = {

@@ -8,6 +8,8 @@
 /** New content for the page: the HTML the server rendered from the given version of the document. */
 export interface UpdateMessage {
 	readonly type: 'update';
+	/** The address of the document the HTML was rendered from. */
+	readonly uri: string;
 	readonly version: number;
 	readonly html: string;
 	/**
@@ -40,6 +42,8 @@ export interface ReadyMessage {
 /** The page shows the content of the given version, code highlighted and formulas typeset. */
 export interface RenderedMessage {
 	readonly type: 'rendered';
+	/** The address of the document, as the update gave it. */
+	readonly uri: string;
 	readonly version: number;
 	/** The number of typeset formulas. */
 	readonly math: number;

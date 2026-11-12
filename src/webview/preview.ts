@@ -41,7 +41,8 @@ const vscode = acquireVsCodeApi();
 document.getElementById('_defaultStyles')?.remove();
 const app = document.getElementById('app') as HTMLElement;
 const hint = document.getElementById('jump-to-source-hint') as HTMLElement;
-let shownVersion: number | undefined;
+/** The document and the version of it the page shows. */
+let shown: { readonly uri: string; readonly version: number } | undefined;
 
 /** Settles once MathJax is loaded and has typeset the page it found; MathJax is loaded asynchronously. */
 const mathJaxReady: Promise<unknown> = new Promise<void>((resolve) => {
@@ -76,7 +77,7 @@ function stampImages(stamps: ReadonlyMap<string, string>): string[] {
 	});
 }
 
-async function refresh(version: number, sources: readonly string[]): Promise<void> {
+async function refresh(content: NonNullable<typeof shown>, sources: readonly string[]): Promise<void> {
 	for (const block of app.querySelectorAll('pre code')) {
 		hljs.highlightElement(block);
 	}
@@ -94,12 +95,14 @@ async function refresh(version: number, sources: readonly string[]): Promise<voi
 	refreshImages();
 	const images = Array.from(app.querySelectorAll('img'));
 	await Promise.all([mathJaxReady, typesetting, ...images.map(loaded)]);
-	if (version !== shownVersion) {
+	// A later update replaced the content; its own refresh reports it.
+	if (content !== shown) {
 		return;
 	}
 	vscode.postMessage({
 		type: 'rendered',
-		version,
+		uri: content.uri,
+		version: content.version,
 		math: app.querySelectorAll('mjx-container').length,
 		code: app.querySelectorAll('pre code.hljs').length,
 		figures: app.querySelectorAll('figure > svg').length,
@@ -244,9 +247,9 @@ window.addEventListener('message', (event: MessageEvent<ToPage>) => {
 	const message = event.data;
 	switch (message.type) {
 		case 'update':
-			shownVersion = message.version;
+			shown = { uri: message.uri, version: message.version };
 			app.innerHTML = message.html;
-			void refresh(message.version, stampImages(new Map(message.imageStamps)));
+			void refresh(shown, stampImages(new Map(message.imageStamps)));
 			break;
 		case 'scrollTo':
 			scrollTo(message.anchor);
