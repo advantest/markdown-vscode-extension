@@ -167,6 +167,16 @@
     "vscode:prepublish": "npm run check && npm run fetch-server && node esbuild.mjs --production && npm run notices && npm run sbom",
     "package": "vsce package --no-dependencies --allow-missing-repository"
   },
+  "overrides": {
+    "@vscode/test-cli": {
+      "mocha": {
+        "diff": "^8.0.4",
+        "serialize-javascript": "^7.1.4"
+      }
+    },
+    "glob": "^14.0.6",
+    "minimatch": "^11.0.8"
+  },
   "devDependencies": {
     "@cyclonedx/cyclonedx-npm": "^7.0.0",
     "@eslint/css": "^2.0.1",
