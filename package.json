@@ -205,5 +205,9 @@
     "@highlightjs/cdn-assets": "11.10.0",
     "mathjax": "3.2.2",
     "vscode-languageclient": "^11.0.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "@vscode/vsce-sign": false
   }
 }
