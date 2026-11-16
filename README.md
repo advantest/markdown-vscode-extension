@@ -116,7 +116,7 @@ is one another extension declares, that extension too, each with its version.
 
 ## Building
 
-Node.js 22 or newer and npm are needed.
+Node.js 26 or newer and the npm it brings, 11.20 or newer, are needed.
 
 ```sh
 npm ci                # installs the dependencies as locked in package-lock.json
