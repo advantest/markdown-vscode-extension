@@ -3,6 +3,9 @@
 Markdown support for Visual Studio Code: validation, an HTML preview, editing aids and refactorings of
 Markdown documents.
 
+This README is for those who build and develop the extension. What its users see in VS Code, on the extension's
+Details tab, is [`EXTENSION-DETAILS.md`](EXTENSION-DETAILS.md).
+
 ## How it works
 
 The extension is a language client written in TypeScript. It starts the Markdown language server
@@ -31,27 +34,6 @@ under the GPL. The extension starts the server with `java -jar <JAR file name>` 
 that the path to it may hold any character, and logs which server it starts in the output channel
 "Markdown Support". Options for the Java VM, e.g. to debug the server, are taken from the
 environment variable `JAVA_TOOL_OPTIONS`, which every Java VM reads.
-
-## A server another extension declares
-
-Another extension may declare a server, e.g. one that adds features to `markdown-ls`, in its
-`package.json`; it needs no code for it:
-
-```json
-"markdownSupport": {
-  "server": { "jar": "server/launcher.jar", "markdownLs": "1.2.0" }
-}
-```
-
-`jar` is relative to the folder of that extension, and `markdownLs` is the version of `markdown-ls` the
-declared server holds. Before it starts a server, the extension reads the declarations of all installed
-extensions. It starts the declared server, with `java -jar` and the same Java, if exactly one extension
-declares a server, its JAR is in that extension's folder and exists, and its version is accepted: the
-major version of the bundled server, from the minor version on that `package.json` names under
-`markdownSupport.declaredServer.minimumVersion`. Only the major and the minor version are compared, so a
-pre-release such as `1.0.0-SNAPSHOT` counts as 1.0. Without a declaration it starts the bundled server; in
-any other case as well, and it shows an error message saying why the features of the declared server are
-missing. A declared server that crashes is restarted, never replaced by the bundled one.
 
 ## Preview
 
@@ -113,6 +95,32 @@ links to two read-only views of what the server runs with, which the command pal
 Each view asks the server whenever it is opened; running its command again refreshes it. Without a
 running server, the view says so. "Dependencies" lists this extension first and, where the server that runs
 is one another extension declares, that extension too, each with its version.
+
+## Customization options
+
+The extension can be extended without changing it: another extension may bring a server of its own in place of
+the bundled one.
+
+### A server another extension declares
+
+Another extension may declare a server, e.g. one that adds features to `markdown-ls`, in its
+`package.json`; it needs no code for it:
+
+```json
+"markdownSupport": {
+  "server": { "jar": "server/launcher.jar", "markdownLs": "1.2.0" }
+}
+```
+
+`jar` is relative to the folder of that extension, and `markdownLs` is the version of `markdown-ls` the
+declared server holds. Before it starts a server, the extension reads the declarations of all installed
+extensions. It starts the declared server, with `java -jar` and the same Java, if exactly one extension
+declares a server, its JAR is in that extension's folder and exists, and its version is accepted: the
+major version of the bundled server, from the minor version on that `package.json` names under
+`markdownSupport.declaredServer.minimumVersion`. Only the major and the minor version are compared, so a
+pre-release such as `1.0.0-SNAPSHOT` counts as 1.0. Without a declaration it starts the bundled server; in
+any other case as well, and it shows an error message saying why the features of the declared server are
+missing. A declared server that crashes is restarted, never replaced by the bundled one.
 
 ## Building
 
