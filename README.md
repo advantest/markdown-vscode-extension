@@ -141,6 +141,9 @@ the preview's stylesheet `media/default.css`, whose licence texts lie in `third-
 extension's npm dependencies from `cyclonedx-npm`, adds the server with all it holds from `server/bom.json`, and
 the preview's stylesheet.
 
+`npm run check-package`, which `npm run package` runs last, checks that the VSIX carries `EXTENSION-DETAILS.md` as
+the page VS Code shows in the extension's Details tab and `CHANGELOG.md` as its Changelog tab.
+
 ## Running
 
 Open the repository in VS Code and start the launch configuration "Run Extension". It opens a second

@@ -106,7 +106,9 @@ jobs:
           npm test
         fi
 
-    - name: Package the VSIX file
+    # "npm run package" runs "npm run check-package" after packaging, which fails the build unless the VSIX
+    # carries the details page and the changelog.
+    - name: Package and check the VSIX file
       run: npm run package
 
     - name: Keep the VSIX file
