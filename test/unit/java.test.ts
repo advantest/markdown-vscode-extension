@@ -321,7 +321,11 @@ describe('findJava', () => {
 	});
 });
 
-describe('nodeJavaEnvironment', () => {
+describe('nodeJavaEnvironment', function () {
+	// The tests start processes, and the first start of an executable may take seconds, e.g. while a virus scanner
+	// checks it. They wait as long as the extension waits for a process.
+	this.timeout(30_000);
+
 	let environment: JavaEnvironment;
 
 	before(() => {
