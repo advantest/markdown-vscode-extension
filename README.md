@@ -130,6 +130,7 @@ Node.js 26 or newer and the npm it brings, 11.20 or newer, are needed.
 npm ci                # installs the dependencies as locked in package-lock.json
 npm run compile       # checks the types and bundles the extension into dist/extension.js
 npm run fetch-server  # unpacks the server's distribution into server/
+npm test              # runs the tests, see Testing below
 npm run package       # fetches the server and builds the VSIX file to install into VS Code
 ```
 
