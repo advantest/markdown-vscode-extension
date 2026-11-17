@@ -187,6 +187,9 @@ two, so that the bundled server is started. They fail unless the server has been
 MARKDOWN_SUPPORT_TEST_JAVA_HOME=/path/to/jdk-21
 ```
 
+Rather than set it in every shell, copy `.env.example` to `.env` and enter the folder there; the test run reads
+`.env`, which git ignores. A variable set in the environment ranks above the file.
+
 While the extension runs from its sources or under test, the environment variable
 `MARKDOWN_SUPPORT_TEST_SERVER_JAR` may name another JAR of the server, e.g. one just built, to start in
 place of the bundled one or a declared one; no declaration is read then. An installed extension ignores it.

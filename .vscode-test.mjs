@@ -12,6 +12,12 @@ import { cp } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { writeStubExtensions } from './test/stubExtensions.mjs';
 
+// The environment variables of this machine, e.g. MARKDOWN_SUPPORT_TEST_JAVA_HOME, may be kept in .env, which git
+// ignores. A variable already set in the environment is kept. VS Code inherits them, and so do the tests.
+if (existsSync('.env')) {
+	process.loadEnvFile('.env');
+}
+
 /**
  * User data of end-to-end tests, emptied before every run. The Java they run the server with is set before VS Code
  * starts, so that the extension finds it when it is activated and the tests need not change it.

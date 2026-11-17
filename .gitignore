@@ -25,3 +25,6 @@ ThirdPartyNotices.txt
 
 # The SBOM, written by "npm run sbom" and packaged with the extension
 bom.json
+
+# Environment variables of this machine, read by the tests
+.env
