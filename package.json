@@ -165,7 +165,7 @@
     "notices": "esbuild scripts/thirdPartyNotices.ts --bundle --platform=node --target=node20 --outfile=out/thirdPartyNotices.js --log-level=warning && node out/thirdPartyNotices.js",
     "sbom": "cyclonedx-npm --omit dev --spec-version 1.6 --output-format JSON --output-file out/npm-bom.json && esbuild scripts/sbom.ts --bundle --platform=node --target=node20 --outfile=out/sbom.js --log-level=warning && node out/sbom.js",
     "vscode:prepublish": "npm run check && npm run fetch-server && node esbuild.mjs --production && npm run notices && npm run sbom",
-    "package": "vsce package --no-dependencies --allow-missing-repository --readme-path EXTENSION-DETAILS.md"
+    "package": "vsce package --no-dependencies --allow-missing-repository --readme-path EXTENSION-DETAILS.md --changelog-path CHANGELOG.md"
   },
   "overrides": {
     "@vscode/test-cli": {

@@ -2,6 +2,7 @@
 !dist/extension.js
 !package.json
 !EXTENSION-DETAILS.md
+!CHANGELOG.md
 !LICENSE
 !ThirdPartyNotices.txt
 !bom.json
