@@ -168,8 +168,15 @@ function elementStyle(element: Element | null): ElementStyle | null {
 }
 
 function pageStyle(): PageStyle {
+	const variables = getComputedStyle(document.documentElement);
 	return {
 		vscodeDefaults: document.getElementById('_defaultStyles') !== null,
+		colorScheme: document.body.getAttribute('data-color-scheme'),
+		colors: document.body.getAttribute('data-colors'),
+		theme: {
+			background: variables.getPropertyValue('--vscode-editor-background').trim(),
+			link: variables.getPropertyValue('--vscode-textLink-foreground').trim(),
+		},
 		body: elementStyle(document.body) as ElementStyle,
 		link: elementStyle(app.querySelector('a')),
 		code: elementStyle(app.querySelector(':not(pre) > code')),
@@ -256,6 +263,14 @@ window.addEventListener('message', (event: MessageEvent<ToPage>) => {
 			break;
 		case 'showElement':
 			showElement(message.offset, message.length);
+			break;
+		case 'colorScheme':
+			document.body.dataset.colorScheme = message.scheme;
+			if (message.themeColors) {
+				document.body.dataset.colors = 'theme';
+			} else {
+				delete document.body.dataset.colors;
+			}
 			break;
 	}
 });

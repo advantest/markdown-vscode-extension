@@ -6,6 +6,7 @@
 import { posix } from 'node:path';
 import * as vscode from 'vscode';
 import { SECTION } from '../settings';
+import { type ColorScheme, colorScheme } from './colorScheme';
 import { resolveLink } from './links';
 import type { FromPage, PageContent, PageStyle, ScrollToMessage, ShowElementMessage, ToPage } from './messages';
 import { previewPage } from './page';
@@ -114,6 +115,7 @@ class Preview {
 			cspSource: webview.cspSource,
 			media: webview.asWebviewUri(this.manager.media).toString(),
 			base: folder ? `${webview.asWebviewUri(folder).toString()}/` : undefined,
+			colorScheme: this.manager.colorScheme(),
 		});
 		// VS Code keeps a page whose HTML did not change, e.g. for another document in the same folder.
 		if (html !== webview.html) {
@@ -229,6 +231,8 @@ class Preview {
 		switch (message.type) {
 			case 'ready':
 				this.pageReady = true;
+				// VS Code loads a hidden page again from its HTML, whose colour scheme may have changed since.
+				this.post({ type: 'colorScheme', ...this.manager.colorScheme() });
 				this.show();
 				break;
 			case 'rendered': {
@@ -317,7 +321,24 @@ export class PreviewManager implements vscode.Disposable {
 				this.previewOf(document.uri)?.update(0);
 			}),
 			vscode.window.onDidChangeActiveTextEditor((editor) => this.follow(editor?.document)),
+			vscode.window.onDidChangeActiveColorTheme(() => this.showColorScheme()),
+			vscode.workspace.onDidChangeConfiguration((event) => {
+				if (event.affectsConfiguration(`${SECTION}.preview.colorScheme`)) {
+					this.showColorScheme();
+				}
+			}),
 		);
+	}
+
+	/** The colour scheme the setting and VS Code's colour theme give the preview. */
+	colorScheme(): ColorScheme {
+		const kind = vscode.window.activeColorTheme.kind;
+		const darkTheme = kind === vscode.ColorThemeKind.Dark || kind === vscode.ColorThemeKind.HighContrast;
+		return colorScheme(vscode.workspace.getConfiguration(SECTION).get('preview.colorScheme'), darkTheme);
+	}
+
+	private showColorScheme(): void {
+		this.preview?.post({ type: 'colorScheme', ...this.colorScheme() });
 	}
 
 	/**

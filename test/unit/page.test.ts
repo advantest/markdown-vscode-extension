@@ -7,18 +7,21 @@ import * as assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { runInNewContext } from 'node:vm';
+import type { ColorScheme } from '../../src/preview/colorScheme';
 import { previewPage } from '../../src/preview/page';
 
 const CSP_SOURCE = 'https://*.vscode-cdn.net';
 const MEDIA = 'https://file+.vscode-resource.vscode-cdn.net/ext/dist/media';
 const BASE = 'https://file+.vscode-resource.vscode-cdn.net/docs/';
 
-function page(base: string | undefined = BASE): string {
-	return previewPage({ cspSource: CSP_SOURCE, media: MEDIA, base });
+const LIGHT: ColorScheme = { scheme: 'light', themeColors: false };
+
+function page(base: string | undefined = BASE, colorScheme: ColorScheme = LIGHT): string {
+	return previewPage({ cspSource: CSP_SOURCE, media: MEDIA, base, colorScheme });
 }
 
 function pageWithoutBase(): string {
-	return previewPage({ cspSource: CSP_SOURCE, media: MEDIA, base: undefined });
+	return previewPage({ cspSource: CSP_SOURCE, media: MEDIA, base: undefined, colorScheme: LIGHT });
 }
 
 function attributes(html: string, tag: string, attribute: string): string[] {
@@ -65,12 +68,25 @@ describe('the preview page', () => {
 		assert.deepEqual(attributes(page('https://host/a"b&c/'), 'base', 'href'), ['https://host/a&quot;b&amp;c/']);
 	});
 
-	it('loads the default stylesheet, its own one and the style of highlight.js, in that order', () => {
+	it('loads the default stylesheet, the colours, its own one and the style of highlight.js, in that order', () => {
 		assert.deepEqual(attributes(page(), 'link', 'href'), [
 			`${MEDIA}/default.css`,
+			`${MEDIA}/color-scheme.css`,
+			`${MEDIA}/vscode-colors.css`,
 			`${MEDIA}/preview.css`,
 			`${MEDIA}/highlight/default.min.css`,
 		]);
+	});
+
+	it('shows the colour scheme it is given, with the colours of the theme only where they fit', () => {
+		assert.deepEqual(attributes(page(), 'body', 'data-color-scheme'), ['light']);
+		assert.deepEqual(attributes(page(), 'body', 'data-colors'), []);
+		const dark = page(BASE, { scheme: 'dark', themeColors: false });
+		assert.deepEqual(attributes(dark, 'body', 'data-color-scheme'), ['dark']);
+		assert.deepEqual(attributes(dark, 'body', 'data-colors'), []);
+		const themed = page(BASE, { scheme: 'dark', themeColors: true });
+		assert.deepEqual(attributes(themed, 'body', 'data-color-scheme'), ['dark']);
+		assert.deepEqual(attributes(themed, 'body', 'data-colors'), ['theme']);
 	});
 
 	it('loads highlight.js, MathJax with its configuration and its own script last', () => {

@@ -5,6 +5,8 @@
 
 /** The messages between the extension and the page of the preview. */
 
+import type { ColorScheme } from './colorScheme';
+
 /** New content for the page: the HTML the server rendered from the given version of the document. */
 export interface UpdateMessage {
 	readonly type: 'update';
@@ -32,7 +34,12 @@ export interface ShowElementMessage {
 	readonly length: number;
 }
 
-export type ToPage = UpdateMessage | ScrollToMessage | ShowElementMessage;
+/** Show the given colour scheme; the page changes its colours without new content. */
+export interface ColorSchemeMessage extends ColorScheme {
+	readonly type: 'colorScheme';
+}
+
+export type ToPage = UpdateMessage | ScrollToMessage | ShowElementMessage | ColorSchemeMessage;
 
 /** The page is loaded and waits for its content. */
 export interface ReadyMessage {
@@ -101,6 +108,11 @@ export interface ElementStyle {
 export interface PageStyle {
 	/** Whether the page has the default styles VS Code puts into every webview. */
 	readonly vscodeDefaults: boolean;
+	/** The attributes `data-color-scheme` and `data-colors` of the body; null where it has none. */
+	readonly colorScheme: string | null;
+	readonly colors: string | null;
+	/** The colours of VS Code's theme the page could take, as VS Code gives them to it; empty where it gives none. */
+	readonly theme: { readonly background: string; readonly link: string };
 	readonly body: ElementStyle;
 	readonly link: ElementStyle | null;
 	/** Code outside of a code block. */

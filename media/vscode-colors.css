@@ -1,0 +1,37 @@
+/*
+ * Copyright © 2026 Advantest Europe GmbH
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
+/*
+ * The colours of VS Code's colour theme for the dark preview of color-scheme.css. The extension sets data-colors to
+ * "theme" where they fit, i.e. in a dark theme. A colour the theme does not define is the one of the dark palette.
+ */
+
+body[data-color-scheme="dark"][data-colors="theme"] {
+	--md-background: var(--vscode-editor-background, var(--md-dark-background));
+	--md-foreground: var(--vscode-editor-foreground, var(--md-dark-foreground));
+	--md-heading: var(--vscode-editor-foreground, var(--md-dark-heading));
+	--md-link: var(--vscode-textLink-foreground, var(--md-dark-link));
+	--md-link-absent: var(--vscode-errorForeground, var(--md-dark-link-absent));
+	--md-muted: var(--vscode-descriptionForeground, var(--md-dark-muted));
+	--md-quote-border: var(--vscode-textBlockQuote-border, var(--md-dark-quote-border));
+	--md-border: var(--vscode-panel-border, var(--md-dark-border));
+	--md-code-border: var(--vscode-panel-border, var(--md-dark-code-border));
+	--md-code-background: var(--vscode-textCodeBlock-background, var(--md-dark-code-background));
+	--md-row-alternate: var(--vscode-keybindingTable-rowsBackground, var(--md-dark-row-alternate));
+	--md-row-hover: var(--vscode-list-hoverBackground, var(--md-dark-row-hover));
+	--md-frame-border: var(--vscode-panel-border, var(--md-dark-frame-border));
+	--md-caption: var(--vscode-descriptionForeground, var(--md-dark-caption));
+	--md-hint-background: var(--vscode-editorHoverWidget-background, var(--md-dark-hint-background));
+	--md-hint-foreground: var(--vscode-editorHoverWidget-foreground, var(--md-dark-hint-foreground));
+	--md-highlight: var(--vscode-focusBorder, var(--md-dark-highlight));
+}
+
+/* High-contrast themes draw every border in their contrast colour. */
+body.vscode-high-contrast[data-color-scheme="dark"][data-colors="theme"] {
+	--md-quote-border: var(--vscode-contrastBorder, var(--md-dark-quote-border));
+	--md-border: var(--vscode-contrastBorder, var(--md-dark-border));
+	--md-code-border: var(--vscode-contrastBorder, var(--md-dark-code-border));
+	--md-frame-border: var(--vscode-contrastBorder, var(--md-dark-frame-border));
+}

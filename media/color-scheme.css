@@ -1,0 +1,198 @@
+/*
+ * Copyright © 2026 Advantest Europe GmbH
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
+/*
+ * The colours of the Markdown preview, light or dark, for every product that shows it. Loaded after default.css,
+ * it changes colours only, nothing else. The attribute data-color-scheme of the body chooses the scheme: "light",
+ * "dark", or "auto" for the scheme of the operating system. A page without the attribute keeps the colours of
+ * default.css. A product may set the variables --md-* to colours of its own, e.g. those of its theme.
+ */
+
+body[data-color-scheme] {
+	/* The colours of default.css and preview.css, as FluentMark's preview has them. */
+	--md-light-background: white;
+	--md-light-foreground: black;
+	--md-light-heading: black;
+	--md-light-link: #4183c4;
+	--md-light-link-absent: #cc0000;
+	--md-light-muted: #777777;
+	--md-light-quote-border: #dddddd;
+	--md-light-border: #cccccc;
+	--md-light-code-border: #eaeaea;
+	--md-light-code-background: #f8f8f8;
+	--md-light-row-alternate: #f8f8f8;
+	--md-light-row-hover: #dddddd;
+	--md-light-frame-border: #dddddd;
+	--md-light-caption: #333333;
+	--md-light-hint-background: lightgray;
+	--md-light-hint-foreground: black;
+	--md-light-highlight: #075ed3;
+
+	--md-dark-background: #1f1f1f;
+	--md-dark-foreground: #cccccc;
+	--md-dark-heading: #cccccc;
+	--md-dark-link: #4daafc;
+	--md-dark-link-absent: #f85149;
+	--md-dark-muted: #9d9d9d;
+	--md-dark-quote-border: #616161;
+	--md-dark-border: #3c3c3c;
+	--md-dark-code-border: #3c3c3c;
+	--md-dark-code-background: #2b2b2b;
+	--md-dark-row-alternate: #262626;
+	--md-dark-row-hover: #2a2d2e;
+	--md-dark-frame-border: #3c3c3c;
+	--md-dark-caption: #9d9d9d;
+	--md-dark-hint-background: #202020;
+	--md-dark-hint-foreground: #cccccc;
+	--md-dark-highlight: #0078d4;
+
+	--md-background: var(--md-light-background);
+	--md-foreground: var(--md-light-foreground);
+	--md-heading: var(--md-light-heading);
+	--md-link: var(--md-light-link);
+	--md-link-absent: var(--md-light-link-absent);
+	--md-muted: var(--md-light-muted);
+	--md-quote-border: var(--md-light-quote-border);
+	--md-border: var(--md-light-border);
+	--md-code-border: var(--md-light-code-border);
+	--md-code-background: var(--md-light-code-background);
+	--md-row-alternate: var(--md-light-row-alternate);
+	--md-row-hover: var(--md-light-row-hover);
+	--md-frame-border: var(--md-light-frame-border);
+	--md-caption: var(--md-light-caption);
+	--md-hint-background: var(--md-light-hint-background);
+	--md-hint-foreground: var(--md-light-hint-foreground);
+	--md-highlight: var(--md-light-highlight);
+}
+
+body[data-color-scheme="dark"] {
+	--md-background: var(--md-dark-background);
+	--md-foreground: var(--md-dark-foreground);
+	--md-heading: var(--md-dark-heading);
+	--md-link: var(--md-dark-link);
+	--md-link-absent: var(--md-dark-link-absent);
+	--md-muted: var(--md-dark-muted);
+	--md-quote-border: var(--md-dark-quote-border);
+	--md-border: var(--md-dark-border);
+	--md-code-border: var(--md-dark-code-border);
+	--md-code-background: var(--md-dark-code-background);
+	--md-row-alternate: var(--md-dark-row-alternate);
+	--md-row-hover: var(--md-dark-row-hover);
+	--md-frame-border: var(--md-dark-frame-border);
+	--md-caption: var(--md-dark-caption);
+	--md-hint-background: var(--md-dark-hint-background);
+	--md-hint-foreground: var(--md-dark-hint-foreground);
+	--md-highlight: var(--md-dark-highlight);
+}
+
+/* The rule of default.css is an image drawn for a light page; a dark one gets a line instead. */
+body[data-color-scheme="dark"] hr {
+	background: var(--md-border);
+	height: 1px;
+}
+
+@media (prefers-color-scheme: dark) {
+	body[data-color-scheme="auto"] {
+		--md-background: var(--md-dark-background);
+		--md-foreground: var(--md-dark-foreground);
+		--md-heading: var(--md-dark-heading);
+		--md-link: var(--md-dark-link);
+		--md-link-absent: var(--md-dark-link-absent);
+		--md-muted: var(--md-dark-muted);
+		--md-quote-border: var(--md-dark-quote-border);
+		--md-border: var(--md-dark-border);
+		--md-code-border: var(--md-dark-code-border);
+		--md-code-background: var(--md-dark-code-background);
+		--md-row-alternate: var(--md-dark-row-alternate);
+		--md-row-hover: var(--md-dark-row-hover);
+		--md-frame-border: var(--md-dark-frame-border);
+		--md-caption: var(--md-dark-caption);
+		--md-hint-background: var(--md-dark-hint-background);
+		--md-hint-foreground: var(--md-dark-hint-foreground);
+		--md-highlight: var(--md-dark-highlight);
+	}
+
+	body[data-color-scheme="auto"] hr {
+		background: var(--md-border);
+		height: 1px;
+	}
+}
+
+/* The colours of default.css, in its order; each selector is more specific than the one it overrides. */
+body[data-color-scheme] {
+	background-color: var(--md-background);
+	color: var(--md-foreground);
+}
+
+body[data-color-scheme] a {
+	color: var(--md-link);
+}
+
+body[data-color-scheme] a.absent {
+	color: var(--md-link-absent);
+}
+
+body[data-color-scheme] :is(h1, h2, h3, h4, h5, h6) {
+	border-bottom-color: var(--md-border);
+	color: var(--md-heading);
+}
+
+body[data-color-scheme] h6 {
+	color: var(--md-muted);
+}
+
+body[data-color-scheme] blockquote {
+	border-left-color: var(--md-quote-border);
+	color: var(--md-muted);
+}
+
+body[data-color-scheme] table tr {
+	border-top-color: var(--md-border);
+	background-color: var(--md-background);
+}
+
+body[data-color-scheme] table tr:nth-child(2n) {
+	background-color: var(--md-row-alternate);
+}
+
+body[data-color-scheme] table tr:hover {
+	background-color: var(--md-row-hover);
+}
+
+body[data-color-scheme] table tr :is(th, td) {
+	border-color: var(--md-border);
+}
+
+body[data-color-scheme] pre {
+	background-color: var(--md-code-background);
+	border-color: var(--md-border);
+}
+
+body[data-color-scheme] span.frame > span {
+	border-color: var(--md-frame-border);
+}
+
+body[data-color-scheme] span.frame span span {
+	color: var(--md-caption);
+}
+
+body[data-color-scheme] :not(pre) > :is(code, tt) {
+	border-color: var(--md-code-border);
+	background-color: var(--md-code-background);
+}
+
+/* The colours of preview.css. */
+body[data-color-scheme] :is(#zoom-hint, #jump-to-source-hint) {
+	background-color: var(--md-hint-background);
+	color: var(--md-hint-foreground);
+}
+
+body[data-color-scheme] .is-highlighted {
+	outline-color: var(--md-highlight);
+}
+
+body[data-color-scheme] [source-offset]:hover {
+	outline-color: var(--md-highlight);
+}

@@ -120,6 +120,22 @@
           "scope": "machine-overridable",
           "markdownDescription": "The path of Graphviz's `dot` executable, which PlantUML draws most diagrams with, e.g. `/usr/bin/dot` or `C:\\Program Files\\Graphviz\\bin\\dot.exe`. If empty, the environment variable `GRAPHVIZ_DOT` and then the usual places are searched.\n\nWhat the language server runs with: [PlantUML and Graphviz](command:markdownSupport.environment.showPlantUml), [Dependencies](command:markdownSupport.environment.showDependencies)."
         },
+        "markdownSupport.preview.colorScheme": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "light",
+            "dark"
+          ],
+          "enumDescriptions": [
+            "Light or dark as VS Code's colour theme is; a dark preview takes the theme's colours.",
+            "Light, with the colours of FluentMark's preview, whatever the colour theme.",
+            "Dark, whatever the colour theme; in a light theme with a dark palette of its own."
+          ],
+          "default": "auto",
+          "scope": "window",
+          "description": "Whether the preview is light or dark."
+        },
         "markdownSupport.preview.openWebLinksIn": {
           "type": "string",
           "enum": [

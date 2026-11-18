@@ -9,6 +9,7 @@ import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { PreviewManager, type Rendered, type RenderResult, UPDATE_DELAY_MS } from '../../src/preview/manager';
+import type { PageStyle } from '../../src/preview/messages';
 
 const EXTENSION_ID = 'advantest.markdown-support';
 const VIEW_TYPE = 'markdownSupport.preview';
@@ -137,39 +138,108 @@ describe('the preview', () => {
 		);
 	});
 
-	it("looks like FluentMark's preview under a dark theme, without VS Code's default styles", async () => {
+	/** Runs with the given colour theme and the given colour scheme of the preview, in the user settings. */
+	async function withAppearance(colorTheme: string, colorScheme: string | undefined, run: () => Promise<void>) {
 		const workbench = vscode.workspace.getConfiguration('workbench');
+		const settings = vscode.workspace.getConfiguration('markdownSupport');
 		const theme = workbench.inspect<string>('colorTheme')?.globalValue;
-		await workbench.update('colorTheme', 'Default Dark Modern', vscode.ConfigurationTarget.Global);
+		const scheme = settings.inspect<string>('preview.colorScheme')?.globalValue;
+		await workbench.update('colorTheme', colorTheme, vscode.ConfigurationTarget.Global);
+		await settings.update('preview.colorScheme', colorScheme, vscode.ConfigurationTarget.Global);
 		try {
-			assert.equal(vscode.window.activeColorTheme.kind, vscode.ColorThemeKind.Dark, 'a dark theme is active');
-			const editor = await showDocument('dark.md', 'any');
-			renderer = async () => ({
-				version: editor.document.version,
-				html:
-					'<p><a href="#here">A link</a> and <code>code</code></p><blockquote><p>A quote</p></blockquote>' +
-					`<p><img src="${PIXEL}"></p>`,
-			});
-
-			const rendering = nextRendering(editor.document.uri);
-			manager.openPreviewToSide(editor.document.uri);
-			const { style } = await rendering;
-
-			assert.equal(style.vscodeDefaults, false, "VS Code's default styles are removed");
-			assert.equal(style.body.color, 'rgb(0, 0, 0)');
-			assert.equal(style.body.backgroundColor, 'rgb(255, 255, 255)');
-			assert.equal(style.body.padding, '30px');
-			assert.match(style.body.fontFamily, /^-apple-system,/);
-			assert.equal(style.link?.color, 'rgb(65, 131, 196)');
-			assert.equal(style.code?.color, 'rgb(0, 0, 0)');
-			assert.equal(style.code?.backgroundColor, 'rgb(248, 248, 248)');
-			assert.equal(style.blockquote?.color, 'rgb(119, 119, 119)');
-			assert.equal(style.blockquote?.backgroundColor, 'rgba(0, 0, 0, 0)');
-			assert.equal(style.image?.maxWidth, '100%');
-			assert.equal(style.image?.maxHeight, 'none');
+			await run();
 		} finally {
+			await settings.update('preview.colorScheme', scheme, vscode.ConfigurationTarget.Global);
 			await workbench.update('colorTheme', theme, vscode.ConfigurationTarget.Global);
 		}
+	}
+
+	/** Shows a document with a link, code, a quote and an image in the preview; returns how the page looks. */
+	async function styleOf(name: string): Promise<PageStyle> {
+		const editor = await showDocument(name, 'any');
+		renderer = async () => ({ version: editor.document.version, html: STYLED });
+		const rendering = nextRendering(editor.document.uri);
+		manager.openPreviewToSide(editor.document.uri);
+		return (await rendering).style;
+	}
+
+	function assertFluentMarkColours(style: PageStyle): void {
+		assert.equal(style.colorScheme, 'light');
+		assert.equal(style.colors, null);
+		assert.equal(style.body.color, 'rgb(0, 0, 0)');
+		assert.equal(style.body.backgroundColor, 'rgb(255, 255, 255)');
+		assert.equal(style.link?.color, 'rgb(65, 131, 196)');
+		assert.equal(style.code?.color, 'rgb(0, 0, 0)');
+		assert.equal(style.code?.backgroundColor, 'rgb(248, 248, 248)');
+		assert.equal(style.blockquote?.color, 'rgb(119, 119, 119)');
+		assert.equal(style.blockquote?.backgroundColor, 'rgba(0, 0, 0, 0)');
+	}
+
+	it("looks like FluentMark's preview with light under a dark theme, without VS Code's default styles", async () => {
+		await withAppearance(DARK_THEME, 'light', async () => {
+			assert.equal(vscode.window.activeColorTheme.kind, vscode.ColorThemeKind.Dark, 'a dark theme is active');
+			const style = await styleOf('light.md');
+
+			assert.equal(style.vscodeDefaults, false, "VS Code's default styles are removed");
+			assertFluentMarkColours(style);
+			assert.equal(style.body.padding, '30px');
+			assert.match(style.body.fontFamily, /^-apple-system,/);
+			assert.equal(style.image?.maxWidth, '100%');
+			assert.equal(style.image?.maxHeight, 'none');
+		});
+	});
+
+	it("has FluentMark's colours under a light theme by default", async () => {
+		await withAppearance(LIGHT_THEME, undefined, async () => {
+			assertFluentMarkColours(await styleOf('auto-light.md'));
+		});
+	});
+
+	it('is dark with the colours of a dark theme by default', async () => {
+		await withAppearance(DARK_THEME, undefined, async () => {
+			const style = await styleOf('auto-dark.md');
+
+			assert.equal(style.colorScheme, 'dark');
+			assert.equal(style.colors, 'theme');
+			assert.equal(style.body.backgroundColor, rgb(style.theme.background), "the theme's background");
+			assert.equal(style.link?.color, rgb(style.theme.link), "the theme's colour of links");
+			assert.equal(style.body.padding, '30px');
+		});
+	});
+
+	it('is dark with a palette of its own with dark under a light theme', async () => {
+		await withAppearance(LIGHT_THEME, 'dark', async () => {
+			assert.equal(vscode.window.activeColorTheme.kind, vscode.ColorThemeKind.Light, 'a light theme is active');
+			const style = await styleOf('dark.md');
+
+			assert.equal(style.colorScheme, 'dark');
+			assert.equal(style.colors, null);
+			assert.equal(style.body.color, 'rgb(204, 204, 204)');
+			assert.equal(style.body.backgroundColor, 'rgb(31, 31, 31)');
+			assert.equal(style.link?.color, 'rgb(77, 170, 252)');
+			assert.equal(style.code?.backgroundColor, 'rgb(43, 43, 43)');
+			assert.equal(style.blockquote?.color, 'rgb(157, 157, 157)');
+		});
+	});
+
+	it('changes the colours of the page it shows as the setting changes', async () => {
+		await withAppearance(LIGHT_THEME, 'light', async () => {
+			const editor = await showDocument('switching.md', 'any');
+			renderer = async () => ({ version: editor.document.version, html: STYLED });
+			let rendering = nextRendering(editor.document.uri);
+			manager.openPreviewToSide(editor.document.uri);
+			assert.equal((await rendering).style.colorScheme, 'light');
+
+			await vscode.workspace
+				.getConfiguration('markdownSupport')
+				.update('preview.colorScheme', 'dark', vscode.ConfigurationTarget.Global);
+			rendering = nextRendering(editor.document.uri, (rendered) => rendered.version === editor.document.version);
+			await editor.edit((edit) => edit.insert(new vscode.Position(0, 0), '\n'));
+			const { style } = await rendering;
+
+			assert.equal(style.colorScheme, 'dark');
+			assert.equal(style.body.backgroundColor, 'rgb(31, 31, 31)');
+		});
 	});
 
 	it('shows a local image changed on disk when the document is rendered again', async () => {
@@ -441,6 +511,23 @@ describe('the preview', () => {
 
 /** A transparent GIF of one pixel. */
 const PIXEL = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+const DARK_THEME = 'Default Dark Modern';
+const LIGHT_THEME = 'Default Light Modern';
+/** A link, code, a quote and an image, whose colours tell the colour scheme of the page. */
+const STYLED =
+	'<p><a href="#here">A link</a> and <code>code</code></p><blockquote><p>A quote</p></blockquote>' +
+	`<p><img src="${PIXEL}"></p>`;
+
+/** The colour #rrggbb as the computed style gives it. */
+function rgb(hex: string): string {
+	const match = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
+	assert.ok(match, `${hex} is a colour #rrggbb`);
+	return `rgb(${match
+		.slice(1)
+		.map((part) => Number.parseInt(part, 16))
+		.join(', ')})`;
+}
+
 
 /** An SVG image of a square of the given width. */
 function square(width: number): string {
