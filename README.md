@@ -44,7 +44,12 @@ when the editor shows another Markdown document, e.g. after the back button, the
 one. Code is highlighted with highlight.js and formulas are typeset with MathJax, both shipped with the
 extension; nothing is loaded from the web except images the document links to. Relative images and
 links are resolved against the folder of the document, and an image may be any local file; an image
-changed on disk shows when the preview is updated. The preview looks the same in every colour theme.
+changed on disk shows when the preview is updated.
+
+The preview is light or dark as `markdownSupport.preview.colorScheme` says: `auto`, the default,
+follows the colour theme, `light` and `dark` keep it so in every theme. Light has FluentMark's colours;
+dark takes the colours of a dark theme, and its own palette under a light theme. Code blocks and
+diagrams stay light for now. The preview changes as the setting or the theme changes.
 
 | Command                               | Title                    | Description                                     |
 |---------------------------------------|--------------------------|-------------------------------------------------|
@@ -74,6 +79,7 @@ In the preview:
 |------------------------------------------|-------------------------------------------------------------------------|
 | `markdownSupport.java.home`              | The folder of the Java installation to run the server with.             |
 | `markdownSupport.trace.server`           | Logs the messages with the server: `off`, `messages` or `verbose`.      |
+| `markdownSupport.preview.colorScheme`    | Whether the preview is light or dark: `auto`, `light` or `dark`.        |
 | `markdownSupport.preview.openWebLinksIn` | Where clicked web addresses open: `integratedBrowser`, `systemBrowser`. |
 | `markdownSupport.plantUml.dotExecutable` | Graphviz's `dot` for PlantUML; empty: `GRAPHVIZ_DOT`, then the usual.  |
 

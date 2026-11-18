@@ -46,6 +46,7 @@ Open the settings with **Ctrl+,** (**Cmd+,** on macOS) and search for "Markdown 
 |------------------------------------------|----------------------------------------------------------------------|
 | `markdownSupport.java.home`              | The folder of the Java installation to run with, the one with `bin`. |
 | `markdownSupport.plantUml.dotExecutable` | Graphviz's `dot`; if empty, `GRAPHVIZ_DOT` and the usual places.     |
+| `markdownSupport.preview.colorScheme`    | Whether the preview is light, dark, or follows the colour theme.     |
 | `markdownSupport.preview.openWebLinksIn` | Where a web address clicked in the preview opens.                    |
 | `markdownSupport.trace.server`           | Logs the messages with the language server.                          |
 
@@ -72,6 +73,14 @@ and type "Markdown Support". They have no keyboard shortcuts of their own; assig
 
 There is only ever one preview. It follows the editor: when the editor shows another Markdown
 document, the preview shows that one.
+
+### Light and dark
+
+By default the preview is light in a light colour theme and dark in a dark or high-contrast one. The
+setting `markdownSupport.preview.colorScheme` keeps it light or dark in every theme instead. Light has
+the colours of FluentMark's preview. Dark takes the colours of the dark theme you use, and a palette of
+its own under a light theme. Code blocks and diagrams stay light for now. The preview changes at once
+when you change the setting or the theme.
 
 ### Navigation in the preview and in the sources
 
