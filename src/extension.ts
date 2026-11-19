@@ -182,7 +182,7 @@ async function askEnvironment(): Promise<ViewInput> {
 	}
 }
 
-async function renderHtml(uri: vscode.Uri): Promise<RenderResult> {
+async function renderHtml(uri: vscode.Uri, darkMode: boolean): Promise<RenderResult> {
 	// A start or restart in progress is waited for.
 	await pending;
 	const running = client;
@@ -191,10 +191,11 @@ async function renderHtml(uri: vscode.Uri): Promise<RenderResult> {
 	}
 	// The server renders only documents open in VS Code, but a preview may outlive the editor of its document.
 	await vscode.workspace.openTextDocument(uri);
-	const result = await running.sendRequest<{ version: number; html: string }>(RENDER_HTML, {
+	const result = await running.sendRequest<{ version: number; html: string; darkMode?: boolean }>(RENDER_HTML, {
 		textDocument: { uri: running.code2ProtocolConverter.asUri(uri) },
+		darkMode,
 	});
-	return { version: result.version, html: result.html };
+	return { version: result.version, html: result.html, darkMode: result.darkMode };
 }
 
 async function stop(): Promise<void> {

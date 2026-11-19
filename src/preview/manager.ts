@@ -33,10 +33,12 @@ const PREVIEWED_SCHEMES = ['file', 'untitled'];
 export interface RenderResult {
 	readonly version: number;
 	readonly html: string;
+	/** Whether the diagrams are drawn for a dark page; a server that does not say it rendered as it was asked. */
+	readonly darkMode?: boolean;
 }
 
-/** Asks the server for the HTML of an open document. */
-export type Renderer = (uri: vscode.Uri) => Promise<RenderResult>;
+/** Asks the server for the HTML of an open document, with the diagrams drawn for a dark page or for a light one. */
+export type Renderer = (uri: vscode.Uri, darkMode: boolean) => Promise<RenderResult>;
 
 /** A preview shows the given version of its document, code highlighted and formulas typeset. */
 export interface Rendered {
@@ -89,6 +91,8 @@ type RevealMessage = ScrollToMessage | ShowElementMessage;
 /** The preview of one Markdown document in a webview panel. */
 class Preview {
 	private shown: RenderResult | undefined;
+	/** Whether the HTML was last asked for with the diagrams drawn for a dark page. */
+	private darkMode: boolean | undefined;
 	private pageReady = false;
 	/** What the page was loaded for, apart from its colour scheme. */
 	private page: string | undefined;
@@ -171,14 +175,23 @@ class Preview {
 		this.timer = setTimeout(() => void this.render(), delayMs);
 	}
 
+	/** Asks for the HTML again if the colour scheme is no longer the one it was last asked in, for the diagrams. */
+	followColorScheme(): void {
+		if (this.manager.darkMode() !== this.darkMode) {
+			this.update(0);
+		}
+	}
+
 	private async render(): Promise<void> {
 		const uri = this.uri;
 		const document = posix.basename(uri.path);
+		const darkMode = this.manager.darkMode();
 		let result: RenderResult;
+		this.darkMode = darkMode;
 		this.renderings++;
 		this.setStatus({ type: 'status', state: 'rendering', document });
 		try {
-			result = await this.manager.renderer(uri);
+			result = await this.manager.renderer(uri, darkMode);
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
 			this.manager.log.error(`The preview of ${uri.toString()} could not be rendered: ${message}`);
@@ -189,7 +202,12 @@ class Preview {
 		} finally {
 			this.renderings--;
 		}
-		if (this.disposed || uri !== this.uri || (this.shown && result.version < this.shown.version)) {
+		if (
+			this.disposed ||
+			uri !== this.uri ||
+			(result.darkMode ?? darkMode) !== this.manager.darkMode() ||
+			(this.shown && result.version < this.shown.version)
+		) {
 			return;
 		}
 		this.shown = result;
@@ -397,8 +415,15 @@ export class PreviewManager implements vscode.Disposable {
 		return colorScheme(vscode.workspace.getConfiguration(SECTION).get('preview.colorScheme'), darkTheme);
 	}
 
+	/** Whether the preview is dark, so that the server draws the diagrams for a dark page. */
+	darkMode(): boolean {
+		return this.colorScheme().scheme === 'dark';
+	}
+
+	/** Changes the colours of the page at once, and has the diagrams drawn again if the page turned light or dark. */
 	private showColorScheme(): void {
 		this.preview?.post({ type: 'colorScheme', ...this.colorScheme() });
+		this.preview?.followColorScheme();
 	}
 
 	/**
