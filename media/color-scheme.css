@@ -87,9 +87,10 @@ body[data-color-scheme="dark"] {
 	--md-highlight: var(--md-dark-highlight);
 }
 
-/* The rule of default.css is an image of dark stripes drawn for a light page; a dark one gets them light. */
+/* The rule of default.css is an image drawn for a light page; a dark one gets a line instead. */
 body[data-color-scheme="dark"] hr {
-	background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='4' fill='white' fill-opacity='0.3'%3E%3Crect x='3' width='3' height='1'/%3E%3Crect x='2' y='1' width='3' height='1'/%3E%3Crect x='1' y='2' width='3' height='1'/%3E%3Crect y='3' width='3' height='1'/%3E%3C/svg%3E") repeat-x 0 0;
+	background: var(--md-border);
+	height: 1px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -114,7 +115,8 @@ body[data-color-scheme="dark"] hr {
 	}
 
 	body[data-color-scheme="auto"] hr {
-		background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='4' fill='white' fill-opacity='0.3'%3E%3Crect x='3' width='3' height='1'/%3E%3Crect x='2' y='1' width='3' height='1'/%3E%3Crect x='1' y='2' width='3' height='1'/%3E%3Crect y='3' width='3' height='1'/%3E%3C/svg%3E") repeat-x 0 0;
+		background: var(--md-border);
+		height: 1px;
 	}
 }
 
