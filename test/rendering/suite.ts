@@ -36,6 +36,8 @@ export function describeRendering(options: RenderingOptions = {}): void {
 
 		let directory: string | undefined;
 		let rendered: Rendered;
+		let api: MarkdownSupportApi;
+		let uri: vscode.Uri;
 
 		before(async () => {
 			directory = await mkdtemp(path.join(tmpdir(), 'markdown-support-rendering-'));
@@ -48,9 +50,9 @@ export function describeRendering(options: RenderingOptions = {}): void {
 			await writeFile(path.join(directory, 'other.md'), '# Other\n');
 			const file = path.join(directory, 'docs', 'content.md');
 			await writeFile(file, CONTENT);
-			const uri = vscode.Uri.file(file);
+			uri = vscode.Uri.file(file);
 			await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(uri), vscode.ViewColumn.One);
-			const api = await vscode.extensions.getExtension<MarkdownSupportApi>(EXTENSION_ID)!.activate();
+			api = await vscode.extensions.getExtension<MarkdownSupportApi>(EXTENSION_ID)!.activate();
 			await options.before?.(api);
 			const rendering = renderingOf(api, uri);
 			await vscode.commands.executeCommand('markdownSupport.preview.openToSide');
@@ -202,8 +204,32 @@ export function describeRendering(options: RenderingOptions = {}): void {
 			assert.equal(rendered.code, 1, 'the code block highlighted');
 			assert.match(rendered.content.text, /class Hello/);
 		});
+
+		it('has the diagrams drawn dark in a dark preview and light in a light one, as the setting changes', async () => {
+			const settings = vscode.workspace.getConfiguration('markdownSupport');
+			const scheme = settings.inspect<string>('preview.colorScheme')?.globalValue;
+			const shown = rendered.style.colorScheme === 'dark' ? 'dark' : 'light';
+			const other = shown === 'dark' ? 'light' : 'dark';
+			const backgroundsIn = async (colorScheme: string) => {
+				const rendering = renderingOf(api, uri, (next) => next.style.colorScheme === colorScheme);
+				await settings.update('preview.colorScheme', colorScheme, vscode.ConfigurationTarget.Global);
+				return (await rendering).content.figureBackgrounds;
+			};
+			try {
+				for (const colorScheme of [other, shown]) {
+					const background = colorScheme === 'dark' ? DARK_DIAGRAM : LIGHT_DIAGRAM;
+					assert.deepEqual(await backgroundsIn(colorScheme), [background, background], colorScheme);
+				}
+			} finally {
+				await settings.update('preview.colorScheme', scheme, vscode.ConfigurationTarget.Global);
+			}
+		});
 	});
 }
+
+// The backgrounds PlantUML gives a diagram drawn in its dark mode, #1B1B1B, and in its default light one.
+const DARK_DIAGRAM = 'rgb(27, 27, 27)';
+const LIGHT_DIAGRAM = 'rgb(255, 255, 255)';
 
 /**
  * What the preview of the document reports once it shows a version of it that is accepted; rejected after
