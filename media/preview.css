@@ -44,8 +44,8 @@ figure, :not(figure) > img {
 	top: 4px;
 	right: 4px;
 	padding: 3px 8px;
-	background-color: var(--md-hint-background, lightgray);
-	color: var(--md-hint-foreground, black);
+	background-color: var(--md-background, white);
+	color: var(--md-foreground, black);
 }
 #status.placeholder {
 	top: 40%;
