@@ -43,7 +43,8 @@ describe('the connection between the preview and the source', () => {
 		await vscode.commands.executeCommand('workbench.action.closeAllEditors');
 	});
 
-	after(async () => {
+	after(async function () {
+		this.timeout(60_000);
 		manager.dispose();
 		await rm(directory, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
 	});

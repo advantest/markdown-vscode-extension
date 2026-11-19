@@ -23,7 +23,8 @@ describe('the extension next to two extensions that declare a server', function 
 		directory = await mkdtemp(path.join(tmpdir(), 'markdown-support-e2e-several-'));
 	});
 
-	after(async () => {
+	after(async function () {
+		this.timeout(60_000);
 		await vscode.commands.executeCommand('workbench.action.closeAllEditors');
 		if (directory) {
 			await rm(directory, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });

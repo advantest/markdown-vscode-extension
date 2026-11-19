@@ -51,7 +51,8 @@ describe('the preview', () => {
 		await vscode.commands.executeCommand('workbench.action.closeAllEditors');
 	});
 
-	after(async () => {
+	after(async function () {
+		this.timeout(60_000);
 		manager.dispose();
 		// VS Code lets go of the folder only a while after its previews are closed.
 		await rm(directory, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
