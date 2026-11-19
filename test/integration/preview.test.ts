@@ -16,13 +16,13 @@ const VIEW_TYPE = 'markdownSupport.preview';
 const RENDER_TIMEOUT = 15_000;
 
 /** Renders like the server would, with the version of the document as it is open in VS Code. */
-type FakeRenderer = (uri: vscode.Uri) => Promise<RenderResult>;
+type FakeRenderer = (uri: vscode.Uri, darkMode: boolean) => Promise<RenderResult>;
 
 function escape(text: string): string {
 	return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-const textRenderer: FakeRenderer = async (uri) => {
+const textRenderer = async (uri: vscode.Uri): Promise<RenderResult> => {
 	const document = await vscode.workspace.openTextDocument(uri);
 	return { version: document.version, html: `<p>${escape(document.getText())}</p>` };
 };
@@ -37,7 +37,7 @@ describe('the preview', () => {
 		directory = await mkdtemp(path.join(tmpdir(), 'markdown-support-preview-'));
 		const extension = vscode.extensions.getExtension(EXTENSION_ID);
 		assert.ok(extension, `${EXTENSION_ID} is installed`);
-		manager = new PreviewManager(extension.extensionUri, (uri) => renderer(uri), {
+		manager = new PreviewManager(extension.extensionUri, (uri, darkMode) => renderer(uri, darkMode), {
 			error: (message) => errors.push(message),
 		});
 	});
@@ -251,6 +251,115 @@ describe('the preview', () => {
 			assertCodeBlock(style, 'dark');
 		});
 	});
+
+	/**
+	 * A renderer that records the colour scheme it is asked for and answers with its name as the content, once the
+	 * answers are released; it says in the result which scheme it rendered in, as the server does, if it echoes it.
+	 */
+	function schemeRenderer(
+		editor: vscode.TextEditor,
+		asked: boolean[],
+		{ echo = true, released = Promise.resolve() }: { echo?: boolean; released?: Promise<void> } = {},
+	): FakeRenderer {
+		return async (_uri, darkMode) => {
+			asked.push(darkMode);
+			await released;
+			const html = `<p>${darkMode ? 'dark' : 'light'}</p>`;
+			return { version: editor.document.version, html, ...(echo ? { darkMode } : {}) };
+		};
+	}
+
+	it('asks for the HTML in the colour scheme it shows, with auto in that of the theme', async () => {
+		const cases: [string, string, boolean][] = [
+			[LIGHT_THEME, 'light', false],
+			[DARK_THEME, 'light', false],
+			[LIGHT_THEME, 'dark', true],
+			[DARK_THEME, 'dark', true],
+			[LIGHT_THEME, 'auto', false],
+			[DARK_THEME, 'auto', true],
+		];
+		for (const [theme, scheme, dark] of cases) {
+			await withAppearance(theme, scheme, async () => {
+				const editor = await showDocument('asked.md', 'any');
+				const asked: boolean[] = [];
+				renderer = schemeRenderer(editor, asked);
+				const rendering = nextRendering(editor.document.uri);
+				manager.openPreviewToSide(editor.document.uri);
+
+				assert.equal((await rendering).content.text.trim(), dark ? 'dark' : 'light', `${theme}, ${scheme}`);
+				assert.deepEqual(asked, [dark], `${theme}, ${scheme}`);
+				await vscode.commands.executeCommand('workbench.action.closeAllEditors');
+			});
+		}
+	});
+
+	it('renders the document again when a change of the theme or of the setting changes its colour scheme', async () => {
+		await withAppearance(LIGHT_THEME, 'auto', async () => {
+			const editor = await showDocument('rescheme.md', 'any');
+			const uri = editor.document.uri;
+			const asked: boolean[] = [];
+			renderer = schemeRenderer(editor, asked);
+			const shows = (scheme: string) => nextRendering(uri, (rendered) => rendered.content.text.trim() === scheme);
+			const settings = vscode.workspace.getConfiguration('markdownSupport');
+			let rendering = shows('light');
+			manager.openPreviewToSide(uri);
+			await rendering;
+
+			rendering = shows('dark');
+			await vscode.workspace.getConfiguration('workbench').update('colorTheme', DARK_THEME, vscode.ConfigurationTarget.Global);
+			await rendering;
+			rendering = shows('light');
+			await settings.update('preview.colorScheme', 'light', vscode.ConfigurationTarget.Global);
+			await rendering;
+			rendering = shows('dark');
+			await settings.update('preview.colorScheme', 'auto', vscode.ConfigurationTarget.Global);
+			await rendering;
+			// Dark under a dark theme is what auto gave already.
+			await settings.update('preview.colorScheme', 'dark', vscode.ConfigurationTarget.Global);
+			await new Promise((resolve) => setTimeout(resolve, UPDATE_DELAY_MS * 4));
+
+			assert.deepEqual(asked, [false, true, false, true]);
+		});
+	});
+
+	for (const echo of [true, false]) {
+		const result = echo ? 'a result' : 'a result that does not say its colour scheme';
+		it(`says over its content that it renders again in another colour scheme, and drops ${result} in the one before`, async () => {
+			await withAppearance(LIGHT_THEME, 'light', async () => {
+				const editor = await showDocument('restyled.md', 'any');
+				const uri = editor.document.uri;
+				const asked: boolean[] = [];
+				renderer = schemeRenderer(editor, asked, { echo });
+				let rendering = nextRendering(uri);
+				manager.openPreviewToSide(uri);
+				await rendering;
+				let release = () => {};
+				const released = new Promise<void>((resolve) => (release = resolve));
+				renderer = schemeRenderer(editor, asked, { echo, released });
+				const shown: string[] = [];
+				const listener = manager.onDidRender((rendered) => shown.push(rendered.content.text.trim()));
+				try {
+					await editor.edit((edit) => edit.insert(new vscode.Position(0, 0), ' '));
+					await waitUntil(() => asked.length === 2);
+					const banner = nextStatus(uri, (status) => status.placement === 'banner');
+					await vscode.workspace
+						.getConfiguration('markdownSupport')
+						.update('preview.colorScheme', 'dark', vscode.ConfigurationTarget.Global);
+					await waitUntil(() => asked.length === 3);
+					assert.equal((await banner).text, 'Rendering restyled.md');
+					rendering = nextRendering(uri, (rendered) => rendered.content.text.trim() === 'dark');
+					release();
+					await rendering;
+				} finally {
+					release();
+					listener.dispose();
+				}
+
+				assert.deepEqual(asked, [false, false, true]);
+				assert.deepEqual(shown, ['dark'], 'the result in light is not shown');
+			});
+		});
+	}
 
 	it('shows a local image changed on disk when the document is rendered again', async () => {
 		const image = path.join(directory, 'changing pictures', 'changing.svg');
