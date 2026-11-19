@@ -5,9 +5,10 @@
 
 /*
  * The colours of the Markdown preview, light or dark, for every product that shows it. Loaded after default.css,
- * it changes colours only, nothing else. The attribute data-color-scheme of the body chooses the scheme: "light",
- * "dark", or "auto" for the scheme of the operating system. A page without the attribute keeps the colours of
- * default.css. A product may set the variables --md-* to colours of its own, e.g. those of its theme.
+ * it changes colours only, and the rule into a line. The attribute data-color-scheme of the body chooses the
+ * scheme: "light", "dark", or "auto" for the scheme of the operating system. A page without the attribute
+ * keeps the colours of default.css. A product may set the variables --md-* to colours of its own, e.g. those of
+ * its theme.
  */
 
 body[data-color-scheme] {
@@ -92,8 +93,8 @@ body[data-color-scheme="dark"] {
 	--md-highlight: var(--md-dark-highlight);
 }
 
-/* The rule of default.css is an image drawn for a light page; a dark one gets a line instead. */
-body[data-color-scheme="dark"] hr {
+/* The rule of default.css is a dashed image drawn for a light page; every scheme gets a thin line instead. */
+body[data-color-scheme] hr {
 	background: var(--md-border);
 	height: 1px;
 }
@@ -118,11 +119,6 @@ body[data-color-scheme="dark"] hr {
 		--md-hint-background: var(--md-dark-hint-background);
 		--md-hint-foreground: var(--md-dark-hint-foreground);
 		--md-highlight: var(--md-dark-highlight);
-	}
-
-	body[data-color-scheme="auto"] hr {
-		background: var(--md-border);
-		height: 1px;
 	}
 }
 
