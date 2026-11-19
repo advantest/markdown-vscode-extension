@@ -38,14 +38,14 @@ body[data-color-scheme] {
 	--md-dark-link-absent: #f85149;
 	--md-dark-muted: #9d9d9d;
 	--md-dark-quote-border: #616161;
-	--md-dark-border: #3c3c3c;
-	/* Lighter than a border, so that it shows under a heading, and of the text colour, so that it follows a theme. */
-	--md-dark-heading-rule: color-mix(in srgb, var(--md-foreground) 35%, var(--md-background));
-	--md-dark-code-border: #3c3c3c;
+	/* Of the text colour, so that a border follows a theme, and light enough to show on a dark page. */
+	--md-dark-border: color-mix(in srgb, var(--md-foreground) 20%, var(--md-background));
+	--md-dark-heading-rule: var(--md-dark-border);
+	--md-dark-code-border: var(--md-dark-border);
 	--md-dark-code-background: #2b2b2b;
 	--md-dark-row-alternate: #262626;
 	--md-dark-row-hover: #2a2d2e;
-	--md-dark-frame-border: #3c3c3c;
+	--md-dark-frame-border: var(--md-dark-border);
 	--md-dark-caption: #9d9d9d;
 	--md-dark-hint-background: #202020;
 	--md-dark-hint-foreground: #cccccc;
