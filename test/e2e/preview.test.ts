@@ -44,8 +44,7 @@ describe('the preview with the language server markdown-ls', function () {
 		directory = await mkdtemp(path.join(tmpdir(), 'markdown-support-e2e-preview-'));
 	});
 
-	after(async function () {
-		this.timeout(60_000);
+	after(async () => {
 		await vscode.commands.executeCommand('workbench.action.closeAllEditors');
 		if (directory) {
 			await rm(directory, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });

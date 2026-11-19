@@ -57,8 +57,7 @@ export function describeRendering(options: RenderingOptions = {}): void {
 			rendered = await rendering;
 		});
 
-		after(async function () {
-			this.timeout(60_000);
+		after(async () => {
 			await vscode.commands.executeCommand('workbench.action.closeAllEditors');
 			if (directory) {
 				await rm(directory, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });

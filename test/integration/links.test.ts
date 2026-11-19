@@ -68,8 +68,7 @@ describe('the links in the preview', () => {
 		await vscode.commands.executeCommand('workbench.action.closeAllEditors');
 	});
 
-	after(async function () {
-		this.timeout(60_000);
+	after(async () => {
 		manager.dispose();
 		await rm(directory, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
 	});
