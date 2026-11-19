@@ -173,6 +173,7 @@ function pageContent(): PageContent {
 			app.querySelectorAll('svg a'),
 			(link) => link.getAttribute('href') ?? link.getAttribute('xlink:href') ?? '',
 		),
+		figureBackgrounds: Array.from(app.querySelectorAll('figure > svg'), (svg) => getComputedStyle(svg).backgroundColor),
 	};
 }
 

@@ -105,6 +105,8 @@ export interface PageContent {
 	readonly figures: readonly string[];
 	/** The targets of the links inside the figures drawn as SVG. */
 	readonly figureLinks: readonly string[];
+	/** The computed background colours of the figures drawn as SVG. */
+	readonly figureBackgrounds: readonly string[];
 }
 
 /** A part of the computed style of an element. */
