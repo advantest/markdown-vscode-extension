@@ -528,7 +528,7 @@ describe('the preview', () => {
 
 		const rendering = nextStatus(editor.document.uri, (status) => status.text.startsWith('Rendering'));
 		manager.openPreviewToSide(editor.document.uri);
-		assert.deepEqual({ ...(await rendering), uri: undefined }, { uri: undefined, text: 'Rendering slow.md\u2026', placement: 'placeholder' });
+		assert.deepEqual({ ...(await rendering), uri: undefined }, { uri: undefined, text: 'Rendering slow.md', placement: 'placeholder' });
 
 		const done = nextStatus(editor.document.uri, (status) => status.placement === undefined);
 		slow.release();
@@ -544,7 +544,7 @@ describe('the preview', () => {
 
 		const rendering = nextStatus(editor.document.uri, (status) => status.placement === 'banner');
 		await editor.edit((edit) => edit.insert(new vscode.Position(0, 0), ' '));
-		assert.equal((await rendering).text, 'Rendering again.md\u2026');
+		assert.equal((await rendering).text, 'Rendering again.md');
 		slow.release();
 	});
 
@@ -582,7 +582,7 @@ describe('the preview', () => {
 			manager.openPreviewToSide(second.document.uri);
 			assert.deepEqual(
 				{ ...(await status), uri: undefined },
-				{ uri: undefined, text: 'Rendering next.md\u2026', placement: 'banner' },
+				{ uri: undefined, text: 'Rendering next.md', placement: 'banner' },
 			);
 			slow.release();
 		} finally {

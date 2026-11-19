@@ -74,7 +74,7 @@ and type "Markdown Support". They have no keyboard shortcuts of their own; assig
 There is only ever one preview. It follows the editor: when the editor shows another Markdown
 document, the preview shows that one.
 
-While a document is being rendered, the preview says so, "Rendering file.md…", with a spinner: at the
+While a document is being rendered, the preview says so, "Rendering file.md", with a spinner: at the
 top right over what it shows, or in the middle where it shows nothing yet. If rendering fails, it says
 why. A preview with nothing to show says "Open a Markdown file to be rendered."
 

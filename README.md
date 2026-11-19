@@ -46,7 +46,7 @@ extension; nothing is loaded from the web except images the document links to. R
 links are resolved against the folder of the document, and an image may be any local file; an image
 changed on disk shows when the preview is updated.
 
-While the server renders, the preview says "Rendering file.md…" with a spinner: in a banner at the
+While the server renders, the preview says "Rendering file.md" with a spinner: in a banner at the
 top right over the content it shows, or in place of content where it has none yet. A failed rendering
 is said the same way, with the reason. A preview without content and without a rendering under way says
 "Open a Markdown file to be rendered."

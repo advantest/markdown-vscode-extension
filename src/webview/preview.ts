@@ -58,7 +58,7 @@ function showStatus(): void {
 	const empty = shown === undefined;
 	const lines =
 		doing?.state === 'rendering'
-			? [`Rendering ${doing.document}\u2026`]
+			? [`Rendering ${doing.document}`]
 			: doing?.state === 'failed'
 				? [`${doing.document} could not be rendered: ${doing.reason ?? ''}`, ...(empty ? [NOTHING] : [])]
 				: empty
