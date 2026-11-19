@@ -205,15 +205,22 @@ export function describeRendering(options: RenderingOptions = {}): void {
 	});
 }
 
-/** What the preview of the document reports once it shows its version; rejected after RENDER_TIMEOUT. */
-export function renderingOf(api: MarkdownSupportApi, uri: vscode.Uri): Promise<Rendered> {
+/**
+ * What the preview of the document reports once it shows a version of it that is accepted; rejected after
+ * RENDER_TIMEOUT.
+ */
+export function renderingOf(
+	api: MarkdownSupportApi,
+	uri: vscode.Uri,
+	accept: (rendered: Rendered) => boolean = () => true,
+): Promise<Rendered> {
 	return new Promise((resolve, reject) => {
 		const timer = setTimeout(() => {
 			listener.dispose();
 			reject(new Error(`no preview of ${uri.toString()} within ${RENDER_TIMEOUT} ms`));
 		}, RENDER_TIMEOUT);
 		const listener = api.onDidRenderPreview((rendered) => {
-			if (rendered.uri.toString() === uri.toString()) {
+			if (rendered.uri.toString() === uri.toString() && accept(rendered)) {
 				clearTimeout(timer);
 				listener.dispose();
 				resolve(rendered);
