@@ -153,6 +153,29 @@ describe('the links in the preview', () => {
 		await waitUntil(() => editor!.visibleRanges.some((range) => range.contains(position)));
 	});
 
+	it('shows a linked Markdown file and the one before after the colour scheme changed', async () => {
+		const settings = vscode.workspace.getConfiguration('markdownSupport');
+		const uri = await preview('from-scheme.md');
+		const other = await file('to-scheme.md', SECTIONS);
+		try {
+			for (const scheme of ['light', 'dark', 'auto', 'dark']) {
+				await settings.update('preview.colorScheme', scheme, vscode.ConfigurationTarget.Global);
+			}
+
+			const there = next(manager.onDidRender, (rendered: Rendered) => same(rendered.uri, other));
+			await manager.openLink(uri, 'to-scheme.md#part');
+			assert.equal((await there).content.ids.join(), 'top,part,end');
+
+			const back = next(manager.onDidRender, (rendered: Rendered) => same(rendered.uri, uri));
+			await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(uri), vscode.ViewColumn.One);
+			const rendered = await back;
+			assert.equal(rendered.content.ids.join(), 'top,part,end');
+			assert.equal(rendered.style.colorScheme, 'dark');
+		} finally {
+			await settings.update('preview.colorScheme', undefined, vscode.ConfigurationTarget.Global);
+		}
+	});
+
 	it('leaves the editor of a linked Markdown file alone where the preview does not find the anchor', async () => {
 		const uri = await preview('from-missing.md');
 		const other = await file('to-missing.md', SECTIONS);

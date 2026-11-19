@@ -74,6 +74,8 @@ type RevealMessage = ScrollToMessage | ShowElementMessage;
 class Preview {
 	private shown: RenderResult | undefined;
 	private pageReady = false;
+	/** What the page was loaded for, apart from its colour scheme. */
+	private page: string | undefined;
 	/** Whether the page shows the content of the current document. */
 	private rendered = false;
 	/** What to scroll to once the page shows the content of the current document. */
@@ -111,17 +113,19 @@ class Preview {
 		this.panel.title = `Preview ${posix.basename(this.uri.path)}`;
 		this.rendered = false;
 		this.shown = undefined;
-		const html = previewPage({
+		const resources = {
 			cspSource: webview.cspSource,
 			media: webview.asWebviewUri(this.manager.media).toString(),
 			base: folder ? `${webview.asWebviewUri(folder).toString()}/` : undefined,
-			colorScheme: this.manager.colorScheme(),
-		});
-		// VS Code keeps a page whose HTML did not change, e.g. for another document in the same folder.
-		if (html !== webview.html) {
+		};
+		// VS Code keeps a page whose HTML did not change, e.g. for another document in the same folder. The colour
+		// scheme does not count: a message changes it, while a new page would be empty until the server answers.
+		const page = JSON.stringify(resources);
+		if (page !== this.page) {
+			this.page = page;
 			this.pageReady = false;
 			this.images.clear();
-			webview.html = html;
+			webview.html = previewPage({ ...resources, colorScheme: this.manager.colorScheme() });
 		}
 		this.update(0);
 	}
