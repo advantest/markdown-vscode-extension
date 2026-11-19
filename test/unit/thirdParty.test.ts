@@ -93,12 +93,14 @@ describe('reading packages', () => {
 		await assert.rejects(readPackage(path.join(root, 'unnamed'), 'x'), /names no name, version or licence/);
 	});
 
-	it('lists the bundled packages, the copied ones and the stylesheet, which comes last', async () => {
+	it('lists the bundled packages, the copied ones and the stylesheets, which come last', async () => {
 		await writePackage('node_modules/zeta', { name: 'zeta', version: '2.0.0', license: 'ISC' }, { LICENSE: 'isc' });
 		await writePackage('node_modules/@highlightjs/cdn-assets', { name: '@highlightjs/cdn-assets', version: '11.0.0', license: 'BSD-3-Clause' }, { LICENSE: 'bsd' });
 		await writePackage('node_modules/mathjax', { name: 'mathjax', version: '3.0.0', license: 'Apache-2.0' }, { LICENSE: 'apache' });
 		await mkdir(path.join(root, 'third-party/default.css'), { recursive: true });
 		await writeFile(path.join(root, 'third-party/default.css/EPL-1.0.txt'), 'epl');
+		await mkdir(path.join(root, 'third-party/stackoverflow.css'), { recursive: true });
+		await writeFile(path.join(root, 'third-party/stackoverflow.css/Stacks-LICENSE.md'), 'mit');
 
 		const components = await shippedComponents(root, ['src/extension.ts', 'node_modules/zeta/index.js']);
 
@@ -109,6 +111,11 @@ describe('reading packages', () => {
 				['mathjax', 'dist/media/mathjax/', ['LICENSE']],
 				['zeta', 'dist/extension.js', ['LICENSE']],
 				['default.css of the preview', 'dist/media/default.css', ['EPL-1.0.txt']],
+				[
+					'StackOverflow styles of highlight.js',
+					'dist/media/highlight/stackoverflow-light.min.css and stackoverflow-dark.min.css',
+					['Stacks-LICENSE.md'],
+				],
 			],
 		);
 	});

@@ -32,8 +32,22 @@ export const COPIED_PACKAGES: Record<string, string> = {
 	mathjax: 'dist/media/mathjax/',
 };
 
+/** A stylesheet the VSIX holds that no package declares under its own licence, with the folder of its licence texts. */
+export interface Stylesheet {
+	name: string;
+	licence: string;
+	origin: string;
+	copyright: string;
+	about: string[];
+	/** Where the stylesheet lies in the VSIX, as the notices say it. */
+	shippedIn: string;
+	/** Each of its files in the VSIX, which the SBOM lists. */
+	files: string[];
+	folder: string;
+}
+
 /** The preview's stylesheet, taken from FluentMark AE, which is under the licences of the projects it comes from. */
-export const DEFAULT_CSS = {
+export const DEFAULT_CSS: Stylesheet = {
 	name: 'default.css of the preview',
 	licence: 'EPL-1.0 AND MIT',
 	origin: 'https://github.com/advantest/fluentmark',
@@ -45,8 +59,30 @@ export const DEFAULT_CSS = {
 		'Gallagher and Jonathan Neal, under the MIT License.',
 	],
 	shippedIn: 'dist/media/default.css',
+	files: ['dist/media/default.css'],
 	folder: 'third-party/default.css',
 };
+
+/**
+ * The styles of code highlight.js brings for Stack Overflow. They come with @highlightjs/cdn-assets, which is under
+ * the BSD 3-Clause License, but they are under the MIT License of Stack Exchange's design system.
+ */
+export const STACKOVERFLOW_CSS: Stylesheet = {
+	name: 'StackOverflow styles of highlight.js',
+	licence: 'MIT',
+	origin: 'https://github.com/StackExchange/Stacks',
+	copyright: 'Stack Exchange Inc.',
+	about: [
+		'stackoverflow-light.min.css and stackoverflow-dark.min.css of @highlightjs/cdn-assets, unchanged: the colours',
+		'of code on stackoverflow.com, from Stack Exchange\'s design system Stacks, under the MIT License.',
+	],
+	shippedIn: 'dist/media/highlight/stackoverflow-light.min.css and stackoverflow-dark.min.css',
+	files: ['dist/media/highlight/stackoverflow-light.min.css', 'dist/media/highlight/stackoverflow-dark.min.css'],
+	folder: 'third-party/stackoverflow.css',
+};
+
+/** The stylesheets declared by hand, in the order the notices list them after the packages. */
+export const STYLESHEETS: Stylesheet[] = [DEFAULT_CSS, STACKOVERFLOW_CSS];
 
 const LICENCE_FILE = /^(licen[cs]e|copying|notice|thirdpartynotices)(\.[a-z]+)?$/i;
 
@@ -111,7 +147,7 @@ export async function readPackage(folder: string, shippedIn: string): Promise<Co
 	};
 }
 
-/** The components the VSIX holds besides the server: the bundled and copied npm packages and the stylesheet. */
+/** The components the VSIX holds besides the server: the bundled and copied npm packages and the stylesheets. */
 export async function shippedComponents(root: string, bundledInputs: string[]): Promise<Component[]> {
 	const components: Component[] = [];
 	for (const folder of bundledPackages(bundledInputs)) {
@@ -121,8 +157,10 @@ export async function shippedComponents(root: string, bundledInputs: string[]): 
 		components.push(await readPackage(path.join(root, 'node_modules', name), shippedIn));
 	}
 	components.sort((a, b) => a.name.localeCompare(b.name) || a.version.localeCompare(b.version));
-	const { folder, ...css } = DEFAULT_CSS;
-	components.push({ ...css, version: '', texts: await readLicenceTexts(path.join(root, folder), /\.(txt|md)$/) });
+	for (const { name, licence, origin, copyright, about, shippedIn, folder } of STYLESHEETS) {
+		const texts = await readLicenceTexts(path.join(root, folder), /\.(txt|md)$/);
+		components.push({ name, version: '', licence, origin, copyright, about, shippedIn, texts });
+	}
 	return components;
 }
 
