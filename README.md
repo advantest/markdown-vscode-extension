@@ -55,8 +55,10 @@ The preview is light or dark as `markdownSupport.preview.colorScheme` says: `aut
 follows the colour theme, `light` and `dark` keep it so in every theme. Light has FluentMark's colours;
 dark takes the colours of a dark theme, and its own palette under a light theme. Code is highlighted
 with highlight.js's styles `stackoverflow-light` and `stackoverflow-dark`, unlike FluentMark, which
-uses highlight.js's default style; the page loads both and switches them with the scheme. Diagrams stay
-light for now. The preview changes as the setting or the theme changes.
+uses highlight.js's default style; the page loads both and switches them with the scheme. The server
+draws PlantUML diagrams light or dark with the scheme, as the preview asks for in `markdown/renderHtml`
+with `darkMode`. The preview changes its colours at once as the setting or the theme changes, and when
+it turns light or dark it has the document rendered again for the diagrams.
 
 | Command                               | Title                    | Description                                     |
 |---------------------------------------|--------------------------|-------------------------------------------------|

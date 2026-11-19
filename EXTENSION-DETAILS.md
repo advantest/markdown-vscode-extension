@@ -84,8 +84,9 @@ By default the preview is light in a light colour theme and dark in a dark or hi
 setting `markdownSupport.preview.colorScheme` keeps it light or dark in every theme instead. Light has
 the colours of FluentMark's preview. Dark takes the colours of the dark theme you use, and a palette of
 its own under a light theme. Code is highlighted in Stack Overflow's colours, light or dark with the
-preview. Diagrams stay light for now. The preview changes at once when you change the setting or the
-theme.
+preview, and PlantUML diagrams are drawn light or dark with it. The preview changes its colours at once
+when you change the setting or the theme; when it turns light or dark, it renders the document again
+for the diagrams and says so over its content.
 
 ### Navigation in the preview and in the sources
 
