@@ -32,6 +32,7 @@ body[data-color-scheme="dark"][data-colors="theme"] {
 body.vscode-high-contrast[data-color-scheme="dark"][data-colors="theme"] {
 	--md-quote-border: var(--vscode-contrastBorder, var(--md-dark-quote-border));
 	--md-border: var(--vscode-contrastBorder, var(--md-dark-border));
+	--md-heading-rule: var(--vscode-contrastBorder, var(--md-dark-heading-rule));
 	--md-code-border: var(--vscode-contrastBorder, var(--md-dark-code-border));
 	--md-frame-border: var(--vscode-contrastBorder, var(--md-dark-frame-border));
 }

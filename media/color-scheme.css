@@ -20,6 +20,7 @@ body[data-color-scheme] {
 	--md-light-muted: #777777;
 	--md-light-quote-border: #dddddd;
 	--md-light-border: #cccccc;
+	--md-light-heading-rule: #cccccc;
 	--md-light-code-border: #eaeaea;
 	--md-light-code-background: #f8f8f8;
 	--md-light-row-alternate: #f8f8f8;
@@ -38,6 +39,8 @@ body[data-color-scheme] {
 	--md-dark-muted: #9d9d9d;
 	--md-dark-quote-border: #616161;
 	--md-dark-border: #3c3c3c;
+	/* Lighter than a border, so that it shows under a heading, and of the text colour, so that it follows a theme. */
+	--md-dark-heading-rule: color-mix(in srgb, var(--md-foreground) 35%, var(--md-background));
 	--md-dark-code-border: #3c3c3c;
 	--md-dark-code-background: #2b2b2b;
 	--md-dark-row-alternate: #262626;
@@ -56,6 +59,7 @@ body[data-color-scheme] {
 	--md-muted: var(--md-light-muted);
 	--md-quote-border: var(--md-light-quote-border);
 	--md-border: var(--md-light-border);
+	--md-heading-rule: var(--md-light-heading-rule);
 	--md-code-border: var(--md-light-code-border);
 	--md-code-background: var(--md-light-code-background);
 	--md-row-alternate: var(--md-light-row-alternate);
@@ -76,6 +80,7 @@ body[data-color-scheme="dark"] {
 	--md-muted: var(--md-dark-muted);
 	--md-quote-border: var(--md-dark-quote-border);
 	--md-border: var(--md-dark-border);
+	--md-heading-rule: var(--md-dark-heading-rule);
 	--md-code-border: var(--md-dark-code-border);
 	--md-code-background: var(--md-dark-code-background);
 	--md-row-alternate: var(--md-dark-row-alternate);
@@ -103,6 +108,7 @@ body[data-color-scheme="dark"] hr {
 		--md-muted: var(--md-dark-muted);
 		--md-quote-border: var(--md-dark-quote-border);
 		--md-border: var(--md-dark-border);
+		--md-heading-rule: var(--md-dark-heading-rule);
 		--md-code-border: var(--md-dark-code-border);
 		--md-code-background: var(--md-dark-code-background);
 		--md-row-alternate: var(--md-dark-row-alternate);
@@ -135,7 +141,7 @@ body[data-color-scheme] a.absent {
 }
 
 body[data-color-scheme] :is(h1, h2, h3, h4, h5, h6) {
-	border-bottom-color: var(--md-border);
+	border-bottom-color: var(--md-heading-rule);
 	color: var(--md-heading);
 }
 
