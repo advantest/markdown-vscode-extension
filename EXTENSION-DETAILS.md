@@ -83,8 +83,9 @@ why. A preview with nothing to show says "Open a Markdown file to be rendered."
 By default the preview is light in a light colour theme and dark in a dark or high-contrast one. The
 setting `markdownSupport.preview.colorScheme` keeps it light or dark in every theme instead. Light has
 the colours of FluentMark's preview. Dark takes the colours of the dark theme you use, and a palette of
-its own under a light theme. Code blocks and diagrams stay light for now. The preview changes at once
-when you change the setting or the theme.
+its own under a light theme. Code is highlighted in Stack Overflow's colours, light or dark with the
+preview. Diagrams stay light for now. The preview changes at once when you change the setting or the
+theme.
 
 ### Navigation in the preview and in the sources
 

@@ -53,8 +53,10 @@ is said the same way, with the reason. A preview without content and without a r
 
 The preview is light or dark as `markdownSupport.preview.colorScheme` says: `auto`, the default,
 follows the colour theme, `light` and `dark` keep it so in every theme. Light has FluentMark's colours;
-dark takes the colours of a dark theme, and its own palette under a light theme. Code blocks and
-diagrams stay light for now. The preview changes as the setting or the theme changes.
+dark takes the colours of a dark theme, and its own palette under a light theme. Code is highlighted
+with highlight.js's styles `stackoverflow-light` and `stackoverflow-dark`, unlike FluentMark, which
+uses highlight.js's default style; the page loads both and switches them with the scheme. Diagrams stay
+light for now. The preview changes as the setting or the theme changes.
 
 | Command                               | Title                    | Description                                     |
 |---------------------------------------|--------------------------|-------------------------------------------------|
@@ -155,11 +157,12 @@ taken from a folder, e.g. after `mvn install` in `markdown-ls`.
 `npm run notices`, which `npm run package` runs too, writes `ThirdPartyNotices.txt`: every third-party component
 the VSIX ships besides the server, with its licence texts. These are the npm packages bundled into
 `dist/extension.js`, as esbuild reports them in `out/bundled.json`, the packages copied into `dist/media/`, and
-the preview's stylesheet `media/default.css`, whose licence texts lie in `third-party/default.css/`.
+the stylesheets that come under licences of their own: the preview's `media/default.css` and highlight.js's
+StackOverflow styles, whose licence texts lie in `third-party/default.css/` and `third-party/stackoverflow.css/`.
 
 `npm run sbom`, which `npm run package` runs too, writes `bom.json`, the CycloneDX SBOM of the VSIX. It takes the
 extension's npm dependencies from `cyclonedx-npm`, adds the server with all it holds from `server/bom.json`, and
-the preview's stylesheet.
+each file of these stylesheets.
 
 `npm run check-package`, which `npm run package` runs last, checks that the VSIX carries `EXTENSION-DETAILS.md` as
 the page VS Code shows in the extension's Details tab and `CHANGELOG.md` as its Changelog tab.
