@@ -28,10 +28,11 @@ describe('the media of the preview', () => {
 		sameFile(join(MEDIA, 'default.css'), 'media/default.css');
 	});
 
-	it('contains highlight.js with its default style and its licence', () => {
+	it('contains highlight.js with its StackOverflow styles and its licence', () => {
 		const highlight = 'node_modules/@highlightjs/cdn-assets';
 		sameFile(join(MEDIA, 'highlight/highlight.min.js'), join(highlight, 'highlight.min.js'));
-		sameFile(join(MEDIA, 'highlight/default.min.css'), join(highlight, 'styles/default.min.css'));
+		sameFile(join(MEDIA, 'highlight/stackoverflow-light.min.css'), join(highlight, 'styles/stackoverflow-light.min.css'));
+		sameFile(join(MEDIA, 'highlight/stackoverflow-dark.min.css'), join(highlight, 'styles/stackoverflow-dark.min.css'));
 		sameFile(join(MEDIA, 'highlight/LICENSE'), join(highlight, 'LICENSE'));
 	});
 

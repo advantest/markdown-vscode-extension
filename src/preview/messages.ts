@@ -130,6 +130,8 @@ export interface PageStyle {
 	readonly link: ElementStyle | null;
 	/** Code outside of a code block. */
 	readonly code: ElementStyle | null;
+	/** The code of a code block, once highlight.js has highlighted it. */
+	readonly codeBlock: ElementStyle | null;
 	readonly blockquote: ElementStyle | null;
 	readonly image: ElementStyle | null;
 }

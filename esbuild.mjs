@@ -25,7 +25,9 @@ function copyMedia() {
 	cpSync('media', 'dist/media', { recursive: true });
 	const highlight = 'node_modules/@highlightjs/cdn-assets';
 	cpSync(`${highlight}/highlight.min.js`, 'dist/media/highlight/highlight.min.js');
-	cpSync(`${highlight}/styles/default.min.css`, 'dist/media/highlight/default.min.css');
+	for (const scheme of ['light', 'dark']) {
+		cpSync(`${highlight}/styles/stackoverflow-${scheme}.min.css`, `dist/media/highlight/stackoverflow-${scheme}.min.css`);
+	}
 	cpSync(`${highlight}/LICENSE`, 'dist/media/highlight/LICENSE');
 	cpSync('node_modules/mathjax/es5', 'dist/media/mathjax/es5', { recursive: true });
 	cpSync('node_modules/mathjax/LICENSE', 'dist/media/mathjax/LICENSE');

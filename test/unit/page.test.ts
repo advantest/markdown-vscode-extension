@@ -68,14 +68,21 @@ describe('the preview page', () => {
 		assert.deepEqual(attributes(page('https://host/a"b&c/'), 'base', 'href'), ['https://host/a&quot;b&amp;c/']);
 	});
 
-	it('loads the default stylesheet, the colours, its own one and the style of highlight.js, in that order', () => {
+	it('loads the default stylesheet, the colours, its own one and the styles of highlight.js, in that order', () => {
 		assert.deepEqual(attributes(page(), 'link', 'href'), [
 			`${MEDIA}/default.css`,
 			`${MEDIA}/color-scheme.css`,
 			`${MEDIA}/vscode-colors.css`,
 			`${MEDIA}/preview.css`,
-			`${MEDIA}/highlight/default.min.css`,
+			`${MEDIA}/highlight/stackoverflow-light.min.css`,
+			`${MEDIA}/highlight/stackoverflow-dark.min.css`,
 		]);
+	});
+
+	it('applies the style of highlight.js made for the colour scheme it shows only', () => {
+		assert.deepEqual(attributes(page(), 'link', 'data-code-scheme'), ['light', 'dark']);
+		assert.deepEqual(attributes(page(), 'link', 'media'), ['all', 'not all']);
+		assert.deepEqual(attributes(page(BASE, { scheme: 'dark', themeColors: true }), 'link', 'media'), ['not all', 'all']);
 	});
 
 	it('shows the colour scheme it is given, with the colours of the theme only where they fit', () => {

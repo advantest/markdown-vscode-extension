@@ -19,3 +19,8 @@ export function colorScheme(setting: unknown, darkTheme: boolean): ColorScheme {
 	const scheme = setting === 'light' || setting === 'dark' ? setting : darkTheme ? 'dark' : 'light';
 	return { scheme, themeColors: scheme === 'dark' && darkTheme };
 }
+
+/** The media query of the style of code made for one scheme: every medium where the page shows that scheme, else none. */
+export function codeStyleMedia(style: ColorScheme['scheme'], shown: ColorScheme['scheme']): string {
+	return style === shown ? 'all' : 'not all';
+}

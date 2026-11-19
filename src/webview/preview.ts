@@ -8,6 +8,7 @@
  * sends into the page, then highlights the code with highlight.js, typesets the formulas with MathJax and lets the
  * images zoom. A Ctrl- or Cmd-click on an element leads to its source.
  */
+import { type ColorScheme, codeStyleMedia } from '../preview/colorScheme';
 import { followLink } from '../preview/linkClick';
 import type { ElementStyle, FromPage, PageContent, PageStyle, StatusMessage, ToPage } from '../preview/messages';
 
@@ -213,6 +214,7 @@ function pageStyle(): PageStyle {
 		body: elementStyle(document.body) as ElementStyle,
 		link: elementStyle(app.querySelector('a')),
 		code: elementStyle(app.querySelector(':not(pre) > code')),
+		codeBlock: elementStyle(app.querySelector('pre code.hljs')),
 		blockquote: elementStyle(app.querySelector('blockquote')),
 		image: elementStyle(app.querySelector('img')),
 	};
@@ -309,6 +311,9 @@ window.addEventListener('message', (event: MessageEvent<ToPage>) => {
 				document.body.dataset.colors = 'theme';
 			} else {
 				delete document.body.dataset.colors;
+			}
+			for (const link of document.querySelectorAll<HTMLLinkElement>('link[data-code-scheme]')) {
+				link.media = codeStyleMedia(link.dataset.codeScheme as ColorScheme['scheme'], message.scheme);
 			}
 			break;
 	}

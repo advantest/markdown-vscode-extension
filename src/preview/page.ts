@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-import type { ColorScheme } from './colorScheme';
+import { type ColorScheme, codeStyleMedia } from './colorScheme';
 
 /** What the page of the preview needs to know about where it is shown. */
 export interface PageResources {
@@ -34,6 +34,10 @@ export function previewPage({ cspSource, media, base, colorScheme }: PageResourc
 		`img-src ${cspSource} https: http: data:`,
 	].join('; ');
 	const file = (name: string) => escape(`${media}/${name}`);
+	// Both styles of the code are loaded; the one of the other scheme applies to no medium until the scheme changes.
+	const codeStyle = (scheme: ColorScheme['scheme']) =>
+		`<link rel="stylesheet" href="${file(`highlight/stackoverflow-${scheme}.min.css`)}" data-code-scheme="${scheme}"` +
+		` media="${codeStyleMedia(scheme, colorScheme.scheme)}">`;
 	return `<!DOCTYPE html>
 <html>
 	<head>
@@ -45,7 +49,8 @@ ${base === undefined ? '' : `		<base href="${escape(base)}">\n`}		<link rel="sty
 		<link rel="stylesheet" href="${file('color-scheme.css')}">
 		<link rel="stylesheet" href="${file('vscode-colors.css')}">
 		<link rel="stylesheet" href="${file('preview.css')}">
-		<link rel="stylesheet" href="${file('highlight/default.min.css')}">
+		${codeStyle('light')}
+		${codeStyle('dark')}
 		<script src="${file('highlight/highlight.min.js')}"></script>
 		<script src="${file('mathjax-config.js')}"></script>
 		<script id="MathJax-script" async src="${file('mathjax/es5/tex-mml-svg.js')}"></script>

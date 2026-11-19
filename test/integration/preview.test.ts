@@ -154,7 +154,7 @@ describe('the preview', () => {
 		}
 	}
 
-	/** Shows a document with a link, code, a quote and an image in the preview; returns how the page looks. */
+	/** Shows a document with a link, code, a quote, a code block and an image in the preview; returns how it looks. */
 	async function styleOf(name: string): Promise<PageStyle> {
 		const editor = await showDocument(name, 'any');
 		renderer = async () => ({ version: editor.document.version, html: STYLED });
@@ -173,6 +173,13 @@ describe('the preview', () => {
 		assert.equal(style.code?.backgroundColor, 'rgb(248, 248, 248)');
 		assert.equal(style.blockquote?.color, 'rgb(119, 119, 119)');
 		assert.equal(style.blockquote?.backgroundColor, 'rgba(0, 0, 0, 0)');
+		assertCodeBlock(style, 'light');
+	}
+
+	/** The code block has the style of highlight.js made for the scheme: StackOverflow Light or Dark. */
+	function assertCodeBlock(style: PageStyle, scheme: 'light' | 'dark'): void {
+		assert.equal(style.codeBlock?.backgroundColor, scheme === 'light' ? 'rgb(246, 246, 246)' : 'rgb(28, 27, 27)');
+		assert.equal(style.codeBlock?.color, scheme === 'light' ? 'rgb(47, 51, 55)' : 'rgb(255, 255, 255)');
 	}
 
 	it("looks like FluentMark's preview with light under a dark theme, without VS Code's default styles", async () => {
@@ -203,6 +210,7 @@ describe('the preview', () => {
 			assert.equal(style.colors, 'theme');
 			assert.equal(style.body.backgroundColor, rgb(style.theme.background), "the theme's background");
 			assert.equal(style.link?.color, rgb(style.theme.link), "the theme's colour of links");
+			assertCodeBlock(style, 'dark');
 			assert.equal(style.body.padding, '30px');
 		});
 	});
@@ -219,6 +227,7 @@ describe('the preview', () => {
 			assert.equal(style.link?.color, 'rgb(77, 170, 252)');
 			assert.equal(style.code?.backgroundColor, 'rgb(43, 43, 43)');
 			assert.equal(style.blockquote?.color, 'rgb(157, 157, 157)');
+			assertCodeBlock(style, 'dark');
 		});
 	});
 
@@ -239,6 +248,7 @@ describe('the preview', () => {
 
 			assert.equal(style.colorScheme, 'dark');
 			assert.equal(style.body.backgroundColor, 'rgb(31, 31, 31)');
+			assertCodeBlock(style, 'dark');
 		});
 	});
 
@@ -607,6 +617,7 @@ const LIGHT_THEME = 'Default Light Modern';
 /** A link, code, a quote and an image, whose colours tell the colour scheme of the page. */
 const STYLED =
 	'<p><a href="#here">A link</a> and <code>code</code></p><blockquote><p>A quote</p></blockquote>' +
+	'<pre><code class="language-js">let x = 1;</code></pre>' +
 	`<p><img src="${PIXEL}"></p>`;
 
 /** The colour #rrggbb as the computed style gives it. */
