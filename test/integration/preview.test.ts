@@ -8,7 +8,7 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
-import { PreviewManager, type Rendered, type RenderResult, UPDATE_DELAY_MS } from '../../src/preview/manager';
+import { PreviewManager, type Rendered, type RenderResult, type ShownStatus, UPDATE_DELAY_MS } from '../../src/preview/manager';
 import type { PageStyle } from '../../src/preview/messages';
 
 const EXTENSION_ID = 'advantest.markdown-support';
@@ -498,6 +498,97 @@ describe('the preview', () => {
 
 		await waitUntil(() => errors.length > 0);
 		assert.match(errors[0], /the server is not running/);
+	});
+
+	/** Settles with the next status the preview of the document shows that is accepted. */
+	function nextStatus(uri: vscode.Uri, accept: (status: ShownStatus) => boolean): Promise<ShownStatus> {
+		return new Promise((resolve) => {
+			const listener = manager.onDidShowStatus((status) => {
+				if (status.uri.toString() === uri.toString() && accept(status)) {
+					listener.dispose();
+					resolve(status);
+				}
+			});
+		});
+	}
+
+	/** A renderer whose answers wait until they are released. */
+	function slowRenderer(): { release: () => void } {
+		let release = () => {};
+		const released = new Promise<void>((resolve) => (release = resolve));
+		renderer = async (uri) => {
+			await released;
+			return textRenderer(uri);
+		};
+		return { release: () => release() };
+	}
+
+	it('says which document it renders in place of content it has not yet, and nothing once it shows it', async () => {
+		const editor = await showDocument('slow.md', '# Slow\n');
+		const slow = slowRenderer();
+
+		const rendering = nextStatus(editor.document.uri, (status) => status.text.startsWith('Rendering'));
+		manager.openPreviewToSide(editor.document.uri);
+		assert.deepEqual({ ...(await rendering), uri: undefined }, { uri: undefined, text: 'Rendering slow.md\u2026', placement: 'placeholder' });
+
+		const done = nextStatus(editor.document.uri, (status) => status.placement === undefined);
+		slow.release();
+		assert.equal((await done).text, '');
+	});
+
+	it('says over its content that it renders the document again', async () => {
+		const editor = await showDocument('again.md', '# Again\n');
+		const first = nextRendering(editor.document.uri);
+		manager.openPreviewToSide(editor.document.uri);
+		await first;
+		const slow = slowRenderer();
+
+		const rendering = nextStatus(editor.document.uri, (status) => status.placement === 'banner');
+		await editor.edit((edit) => edit.insert(new vscode.Position(0, 0), ' '));
+		assert.equal((await rendering).text, 'Rendering again.md\u2026');
+		slow.release();
+	});
+
+	it('says that a rendering failed, and that there is nothing to show without content', async () => {
+		const editor = await showDocument('failed.md', '# Failed\n');
+		renderer = async () => {
+			throw new Error('the server is not running');
+		};
+
+		const failed = nextStatus(editor.document.uri, (status) => status.text.includes('could not'));
+		manager.openPreviewToSide(editor.document.uri);
+
+		assert.deepEqual(
+			{ ...(await failed), uri: undefined },
+			{
+				uri: undefined,
+				text: 'failed.md could not be rendered: the server is not running\nOpen a Markdown file to be rendered.',
+				placement: 'placeholder',
+			},
+		);
+	});
+
+	it('keeps the content of the document before while rendering another after the colour scheme changed', async () => {
+		const first = await showDocument('kept.md', '# Kept\n');
+		const rendering = nextRendering(first.document.uri);
+		manager.openPreviewToSide(first.document.uri);
+		await rendering;
+		const settings = vscode.workspace.getConfiguration('markdownSupport');
+		try {
+			await settings.update('preview.colorScheme', 'dark', vscode.ConfigurationTarget.Global);
+			const second = await showDocument('next.md', '# Next\n');
+			const slow = slowRenderer();
+
+			const status = nextStatus(second.document.uri, (shown) => shown.placement !== undefined);
+			manager.openPreviewToSide(second.document.uri);
+			assert.deepEqual(
+				{ ...(await status), uri: undefined },
+				{ uri: undefined, text: 'Rendering next.md\u2026', placement: 'banner' },
+			);
+			slow.release();
+		} finally {
+			await settings.update('preview.colorScheme', undefined, vscode.ConfigurationTarget.Global);
+		}
 	});
 
 	it('is opened by the commands of the extension', async () => {

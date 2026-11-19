@@ -8,7 +8,15 @@ import * as vscode from 'vscode';
 import { SECTION } from '../settings';
 import { type ColorScheme, colorScheme } from './colorScheme';
 import { resolveLink } from './links';
-import type { FromPage, PageContent, PageStyle, ScrollToMessage, ShowElementMessage, ToPage } from './messages';
+import type {
+	FromPage,
+	PageContent,
+	PageStyle,
+	ScrollToMessage,
+	ShowElementMessage,
+	StatusMessage,
+	ToPage,
+} from './messages';
 import { previewPage } from './page';
 import { fileSystemRoots } from './roots';
 
@@ -59,6 +67,14 @@ export interface ShownElement {
 	readonly element: { readonly offset: number; readonly length: number } | undefined;
 }
 
+/** A preview tells what it is doing: in a banner over its content, in place of content it has not, or nothing. */
+export interface ShownStatus {
+	readonly uri: vscode.Uri;
+	/** The lines shown, separated by line feeds; empty for none. */
+	readonly text: string;
+	readonly placement: 'banner' | 'placeholder' | undefined;
+}
+
 export interface Log {
 	error(message: string): void;
 }
@@ -76,6 +92,10 @@ class Preview {
 	private pageReady = false;
 	/** What the page was loaded for, apart from its colour scheme. */
 	private page: string | undefined;
+	/** What the preview is doing, for the page to say; none while it shows the latest content. */
+	private status: StatusMessage | undefined;
+	/** The renderings asked for and not answered yet. */
+	private renderings = 0;
 	/** Whether the page shows the content of the current document. */
 	private rendered = false;
 	/** What to scroll to once the page shows the content of the current document. */
@@ -153,19 +173,35 @@ class Preview {
 
 	private async render(): Promise<void> {
 		const uri = this.uri;
+		const document = posix.basename(uri.path);
 		let result: RenderResult;
+		this.renderings++;
+		this.setStatus({ type: 'status', state: 'rendering', document });
 		try {
 			result = await this.manager.renderer(uri);
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
 			this.manager.log.error(`The preview of ${uri.toString()} could not be rendered: ${message}`);
+			if (!this.disposed && uri === this.uri) {
+				this.setStatus({ type: 'status', state: 'failed', document, reason: message });
+			}
 			return;
+		} finally {
+			this.renderings--;
 		}
 		if (this.disposed || uri !== this.uri || (this.shown && result.version < this.shown.version)) {
 			return;
 		}
 		this.shown = result;
 		this.show();
+	}
+
+	/** Tells the page what the preview is doing. */
+	private setStatus(status: StatusMessage | undefined): void {
+		this.status = status;
+		if (status && this.pageReady) {
+			this.post(status);
+		}
 	}
 
 	private show(): void {
@@ -176,6 +212,12 @@ class Preview {
 		void this.imageStamps().then((imageStamps) => {
 			if (this.pageReady && this.shown === shown && !this.disposed) {
 				this.post({ type: 'update', uri: this.uri.toString(), version: shown.version, html: shown.html, imageStamps });
+				// The update ends the status on the page; a rendering still running goes on being shown.
+				this.setStatus(
+					this.renderings > 0
+						? { type: 'status', state: 'rendering', document: posix.basename(this.uri.path) }
+						: undefined,
+				);
 			}
 		});
 	}
@@ -237,7 +279,13 @@ class Preview {
 				this.pageReady = true;
 				// VS Code loads a hidden page again from its HTML, whose colour scheme may have changed since.
 				this.post({ type: 'colorScheme', ...this.manager.colorScheme() });
+				if (this.status) {
+					this.post(this.status);
+				}
 				this.show();
+				break;
+			case 'statusShown':
+				this.manager.statusShown({ uri: this.uri, text: message.text, placement: message.placement ?? undefined });
 				break;
 			case 'rendered': {
 				// The page may still finish the content of the document shown before, after the preview moved on.
@@ -298,7 +346,13 @@ export class PreviewManager implements vscode.Disposable {
 	private readonly renderedEmitter = new vscode.EventEmitter<Rendered>();
 	private readonly revealedEmitter = new vscode.EventEmitter<Revealed>();
 	private readonly shownElementEmitter = new vscode.EventEmitter<ShownElement>();
-	private readonly disposables: vscode.Disposable[] = [this.renderedEmitter, this.revealedEmitter, this.shownElementEmitter];
+	private readonly shownStatusEmitter = new vscode.EventEmitter<ShownStatus>();
+	private readonly disposables: vscode.Disposable[] = [
+		this.renderedEmitter,
+		this.revealedEmitter,
+		this.shownElementEmitter,
+		this.shownStatusEmitter,
+	];
 
 	/** Fires when a preview shows a new content, after highlight.js and MathJax ran. */
 	readonly onDidRender = this.renderedEmitter.event;
@@ -306,6 +360,8 @@ export class PreviewManager implements vscode.Disposable {
 	readonly onDidReveal = this.revealedEmitter.event;
 	/** Fires when a preview showed the element rendered from a part of its document, or found none. */
 	readonly onDidShowElement = this.shownElementEmitter.event;
+	/** Fires when a preview tells what it is doing, or stops telling it. */
+	readonly onDidShowStatus = this.shownStatusEmitter.event;
 
 	constructor(
 		extensionUri: vscode.Uri,
@@ -569,6 +625,11 @@ export class PreviewManager implements vscode.Disposable {
 	/** @internal */
 	elementShown(shown: ShownElement): void {
 		this.shownElementEmitter.fire(shown);
+	}
+
+	/** @internal */
+	statusShown(shown: ShownStatus): void {
+		this.shownStatusEmitter.fire(shown);
 	}
 
 	/** @internal */

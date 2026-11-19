@@ -9,7 +9,7 @@
  * images zoom. A Ctrl- or Cmd-click on an element leads to its source.
  */
 import { followLink } from '../preview/linkClick';
-import type { ElementStyle, FromPage, PageContent, PageStyle, ToPage } from '../preview/messages';
+import type { ElementStyle, FromPage, PageContent, PageStyle, StatusMessage, ToPage } from '../preview/messages';
 
 interface VsCodeApi {
 	postMessage(message: FromPage): void;
@@ -40,9 +40,42 @@ const vscode = acquireVsCodeApi();
 // VS Code puts its own default styles, which follow its theme, into every webview; the preview looks like FluentMark's.
 document.getElementById('_defaultStyles')?.remove();
 const app = document.getElementById('app') as HTMLElement;
+const status = document.getElementById('status') as HTMLElement;
 const hint = document.getElementById('jump-to-source-hint') as HTMLElement;
 /** The document and the version of it the page shows. */
 let shown: { readonly uri: string; readonly version: number } | undefined;
+/** What the extension is doing for the page; none once new content arrived. */
+let doing: StatusMessage | undefined;
+
+/** The text that tells what the page waits for, or where nothing is to be shown, that there is nothing. */
+const NOTHING = 'Open a Markdown file to be rendered.';
+
+/**
+ * Shows what the extension is doing: over the content, after a moment, so that a quick update does not flicker, or in
+ * place of content the page has not; a page without content and without a rendering says that there is nothing.
+ */
+function showStatus(): void {
+	const empty = shown === undefined;
+	const lines =
+		doing?.state === 'rendering'
+			? [`Rendering ${doing.document}\u2026`]
+			: doing?.state === 'failed'
+				? [`${doing.document} could not be rendered: ${doing.reason ?? ''}`, ...(empty ? [NOTHING] : [])]
+				: empty
+					? [NOTHING]
+					: [];
+	const placement = lines.length === 0 ? null : empty ? 'placeholder' : 'banner';
+	status.replaceChildren(
+		...lines.map((line) => {
+			const element = document.createElement('div');
+			element.textContent = line;
+			return element;
+		}),
+	);
+	status.className = [placement ?? '', doing?.state === 'rendering' ? 'busy' : '', doing?.state ?? ''].join(' ').trim();
+	status.hidden = placement === null;
+	vscode.postMessage({ type: 'statusShown', text: lines.join('\n'), placement });
+}
 
 /** Settles once MathJax is loaded and has typeset the page it found; MathJax is loaded asynchronously. */
 const mathJaxReady: Promise<unknown> = new Promise<void>((resolve) => {
@@ -256,7 +289,13 @@ window.addEventListener('message', (event: MessageEvent<ToPage>) => {
 		case 'update':
 			shown = { uri: message.uri, version: message.version };
 			app.innerHTML = message.html;
+			doing = undefined;
+			showStatus();
 			void refresh(shown, stampImages(new Map(message.imageStamps)));
+			break;
+		case 'status':
+			doing = message;
+			showStatus();
 			break;
 		case 'scrollTo':
 			scrollTo(message.anchor);
@@ -275,4 +314,5 @@ window.addEventListener('message', (event: MessageEvent<ToPage>) => {
 	}
 });
 
+showStatus();
 vscode.postMessage({ type: 'ready' });

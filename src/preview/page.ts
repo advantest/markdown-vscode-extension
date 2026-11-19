@@ -52,6 +52,7 @@ ${base === undefined ? '' : `		<base href="${escape(base)}">\n`}		<link rel="sty
 	</head>
 	<body style="overflow:auto" data-color-scheme="${colorScheme.scheme}"${colorScheme.themeColors ? ' data-colors="theme"' : ''}>
 		<span id="app"></span>
+		<div id="status" role="status" hidden></div>
 		<div id="zoom-hint">
 			<div>Use <em>Alt + mouse wheel</em> to zoom.</div>
 			<div>Use <em>left mouse button</em> to grab and move.</div>

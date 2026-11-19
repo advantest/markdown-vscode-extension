@@ -39,7 +39,20 @@ export interface ColorSchemeMessage extends ColorScheme {
 	readonly type: 'colorScheme';
 }
 
-export type ToPage = UpdateMessage | ScrollToMessage | ShowElementMessage | ColorSchemeMessage;
+/**
+ * What the extension is doing for the page: rendering a document, or failing to. The page says so over its content,
+ * or in its place where it has none; new content ends it.
+ */
+export interface StatusMessage {
+	readonly type: 'status';
+	readonly state: 'rendering' | 'failed';
+	/** The name of the document. */
+	readonly document: string;
+	/** Why the rendering failed. */
+	readonly reason?: string;
+}
+
+export type ToPage = UpdateMessage | ScrollToMessage | ShowElementMessage | ColorSchemeMessage | StatusMessage;
 
 /** The page is loaded and waits for its content. */
 export interface ReadyMessage {
@@ -152,8 +165,16 @@ export interface ElementShownMessage {
 	readonly element: { readonly offset: number; readonly length: number } | null;
 }
 
+/** The page shows a status: as a banner over its content, in place of content it has not, or none. */
+export interface StatusShownMessage {
+	readonly type: 'statusShown';
+	readonly text: string;
+	readonly placement: 'banner' | 'placeholder' | null;
+}
+
 export type FromPage =
 	| ReadyMessage
+	| StatusShownMessage
 	| RenderedMessage
 	| OpenLinkMessage
 	| RevealedMessage

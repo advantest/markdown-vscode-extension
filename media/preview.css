@@ -31,6 +31,59 @@ figure, :not(figure) > img {
 		transform: none;
 	}
 }
+/* What the extension is doing: a banner over the content, or a placeholder where there is none yet. */
+#status {
+	position: fixed;
+	font-size: small;
+	animation: status-appears 0.2s ease-in 0.3s both;
+}
+#status.failed {
+	animation: none;
+}
+#status.banner {
+	top: 4px;
+	right: 4px;
+	padding: 3px 8px;
+	background-color: var(--md-hint-background, lightgray);
+	color: var(--md-hint-foreground, black);
+}
+#status.placeholder {
+	top: 40%;
+	left: 0;
+	right: 0;
+	text-align: center;
+	color: var(--md-muted, #777777);
+}
+#status.busy > div::before {
+	content: '';
+	display: inline-block;
+	width: 0.8em;
+	height: 0.8em;
+	margin-right: 0.5em;
+	vertical-align: -0.1em;
+	border: 2px solid currentColor;
+	border-top-color: transparent;
+	border-radius: 50%;
+	animation: status-spins 1s linear infinite;
+}
+@keyframes status-appears {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+@keyframes status-spins {
+	to {
+		transform: rotate(360deg);
+	}
+}
+@media print {
+	#status {
+		display: none;
+	}
+}
 /* Used to highlight a single element when displaying an element in source code and showing it in the rendered preview */
 .is-highlighted {
 	outline: 2px solid #075ED3;
