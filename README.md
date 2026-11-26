@@ -145,6 +145,7 @@ Node.js 26 or newer and the npm it brings, 11.20 or newer, are needed.
 npm ci                # installs the dependencies as locked in package-lock.json
 npm run compile       # checks the types and bundles the extension into dist/extension.js
 npm run fetch-server  # unpacks the server's distribution into server/
+npm run check-server  # checks that server/ holds what fetch-server would unpack now
 npm test              # runs the tests, see Testing below
 npm run package       # fetches the server and builds the VSIX file to install into VS Code
 ```
@@ -155,6 +156,15 @@ that version, `markdown-ls-<version>-distribution.zip`, from the Maven repositor
 environment variable `MARKDOWN_LS_REPOSITORY`, a folder or an `http(s)` address, by default the local
 repository `~/.m2/repository`. It checks that the JAR is of the pinned version. A snapshot can only be
 taken from a folder, e.g. after `mvn install` in `markdown-ls`.
+
+`server/` is ignored by git, so neither a checkout nor a new build of `markdown-ls` updates it; run
+`npm run fetch-server` again after either. `npm run check-server` checks that `server/` holds the server
+`npm run fetch-server` would unpack now: of the pinned version, and file by file as in the distribution, so that an
+older build of a snapshot is noticed too. Every test run inside VS Code, `npm test` among them, runs this check first
+and stops with the hint to run `npm run fetch-server` if it fails; a run of the label `integration` alone, which needs
+no server, skips it. Where the distribution cannot be read, e.g. offline, the check only compares the version of
+`server/markdown-ls.jar` with the pinned one and warns. `npm run package` fetches the server itself before it builds
+the VSIX, so it never packages a stale one.
 
 `npm run notices`, which `npm run package` runs too, writes `ThirdPartyNotices.txt`: every third-party component
 the VSIX ships besides the server, with its licence texts. These are the npm packages bundled into
