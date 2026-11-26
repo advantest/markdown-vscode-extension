@@ -6,6 +6,7 @@
 // Fetches the distribution of the language server markdown-ls and takes from it what the extension bundles.
 
 import { readFile } from 'node:fs/promises';
+import { homedir } from 'node:os';
 import * as path from 'node:path';
 import type { Readable } from 'node:stream';
 import * as yauzl from 'yauzl';
@@ -110,6 +111,24 @@ export function manifestAttribute(manifest: string, name: string): string | unde
 	return lines.find((line) => line.startsWith(prefix))?.slice(prefix.length);
 }
 
+/** The version the manifest of the server's JAR names. */
+export async function jarVersion(jar: Buffer): Promise<string> {
+	const manifest = (await readZip(jar)).find((entry) => entry.name === 'META-INF/MANIFEST.MF');
+	const found = manifest && manifestAttribute((await manifest.read()).toString('utf8'), 'Implementation-Version');
+	if (found === undefined) {
+		throw new Error(`The manifest of ${JAR} names no Implementation-Version.`);
+	}
+	return found;
+}
+
+/**
+ * The Maven repository the distribution is taken from: the one the environment variable MARKDOWN_LS_REPOSITORY names,
+ * a folder or a web address, by default the local one.
+ */
+export function repositoryOf(environment: NodeJS.ProcessEnv): string {
+	return environment.MARKDOWN_LS_REPOSITORY?.trim() || path.join(homedir(), '.m2', 'repository');
+}
+
 /**
  * What the extension takes from the distribution: the server's JAR and the libraries next to it, and what the
  * licences of these libraries ask to be passed on with them — the server's licence, the list of the third-party
@@ -134,11 +153,7 @@ export async function unpackServer(distribution: Buffer, version: string): Promi
 	if (jar === undefined) {
 		throw new Error(`The distribution holds no ${JAR}.`);
 	}
-	const manifest = (await readZip(jar.data)).find((entry) => entry.name === 'META-INF/MANIFEST.MF');
-	const found = manifest && manifestAttribute((await manifest.read()).toString('utf8'), 'Implementation-Version');
-	if (found === undefined) {
-		throw new Error(`The manifest of ${JAR} names no Implementation-Version.`);
-	}
+	const found = await jarVersion(jar.data);
 	if (found !== version) {
 		throw new Error(`The distribution holds markdown-ls ${found}, but package.json pins ${version}.`);
 	}

@@ -12,16 +12,14 @@
 // default the local one, ~/.m2/repository, into which "mvn install" in markdown-ls puts it.
 
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
-import { homedir } from 'node:os';
 import * as path from 'node:path';
-import { distributionLocation, load, readCoordinates, unpackServer } from './serverDistribution';
+import { distributionLocation, load, readCoordinates, repositoryOf, unpackServer } from './serverDistribution';
 
 const TARGET = 'server';
 
 async function main(): Promise<void> {
 	const coordinates = readCoordinates(JSON.parse(await readFile('package.json', 'utf8')));
-	const repository = process.env.MARKDOWN_LS_REPOSITORY?.trim() || path.join(homedir(), '.m2', 'repository');
-	const location = distributionLocation(repository, coordinates);
+	const location = distributionLocation(repositoryOf(process.env), coordinates);
 	const files = await unpackServer(await load(location), coordinates.version);
 
 	await rm(TARGET, { recursive: true, force: true });
