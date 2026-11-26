@@ -178,6 +178,7 @@
     "test:integration": "vscode-test --coverage --coverage-reporter json --coverage-output coverage/integration",
     "coverage": "node scripts/coverage.mjs",
     "fetch-server": "esbuild scripts/fetchServer.ts --bundle --platform=node --target=node20 --outfile=out/fetchServer.js --log-level=warning && node out/fetchServer.js",
+		"check-server": "esbuild scripts/checkServer.ts --bundle --platform=node --target=node20 --outfile=out/checkServer.js --log-level=warning && node out/checkServer.js",
     "notices": "esbuild scripts/thirdPartyNotices.ts --bundle --platform=node --target=node20 --outfile=out/thirdPartyNotices.js --log-level=warning && node out/thirdPartyNotices.js",
     "sbom": "cyclonedx-npm --omit dev --spec-version 1.6 --output-format JSON --output-file out/npm-bom.json && esbuild scripts/sbom.ts --bundle --platform=node --target=node20 --outfile=out/sbom.js --log-level=warning && node out/sbom.js",
     "vscode:prepublish": "npm run check && npm run fetch-server && node esbuild.mjs --production && npm run notices && npm run sbom",

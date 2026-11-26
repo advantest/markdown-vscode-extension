@@ -7,6 +7,7 @@
 // The oldest VS Code the extension supports is used, so that a newer API cannot slip in unnoticed.
 
 import { defineConfig } from '@vscode/test-cli';
+import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { cp } from 'node:fs/promises';
 import { resolve } from 'node:path';
@@ -34,6 +35,18 @@ function e2eUserData(name) {
 		);
 	}
 	return folder;
+}
+
+// server/ is ignored by git, so neither a checkout nor a new build of the server updates it. Unless only the tests that
+// need no server run, it is checked first to hold the server "npm run fetch-server" would unpack now.
+const labels = process.argv.flatMap((arg, index, args) =>
+	arg === '--label' || arg === '-l' ? [args[index + 1]] : arg.startsWith('--label=') ? [arg.slice('--label='.length)] : [],
+);
+if (labels.length === 0 || labels.some((label) => label !== 'integration')) {
+	const check = spawnSync('npm run --silent check-server', { stdio: 'inherit', shell: true });
+	if (check.status !== 0) {
+		process.exit(check.status ?? 1);
+	}
 }
 
 // Extensions without code that declare a server, installed next to the extension under test by some of the runs.

@@ -5,7 +5,7 @@
 
 // Fetches the distribution of the language server markdown-ls and takes from it what the extension bundles.
 
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import * as path from 'node:path';
 import type { Readable } from 'node:stream';
@@ -158,4 +158,69 @@ export async function unpackServer(distribution: Buffer, version: string): Promi
 		throw new Error(`The distribution holds markdown-ls ${found}, but package.json pins ${version}.`);
 	}
 	return files;
+}
+
+const FETCH = 'Run "npm run fetch-server".';
+
+/**
+ * Checks the server unpacked into a folder, as "npm run fetch-server" does into server/, against the distribution it
+ * would unpack now. Fails if the folder holds no server, one of another version than the one pinned, or one whose
+ * files differ from the distribution's, e.g. an older build of the same snapshot. Answers a warning if the
+ * distribution cannot be read, e.g. offline or where the Maven repository lacks it; then only the version is checked.
+ */
+export async function checkBundledServer(
+	folder: string,
+	coordinates: Coordinates,
+	repository: string,
+	read: (location: string) => Promise<Buffer> = load,
+): Promise<string | undefined> {
+	let jar: Buffer;
+	try {
+		jar = await readFile(path.join(folder, JAR));
+	} catch {
+		throw new Error(`${folder} holds no ${JAR}. ${FETCH}`);
+	}
+	let bundled: string;
+	try {
+		bundled = await jarVersion(jar);
+	} catch (error) {
+		throw new Error(`${path.join(folder, JAR)}: ${error instanceof Error ? error.message : String(error)} ${FETCH}`, {
+			cause: error,
+		});
+	}
+	if (bundled !== coordinates.version) {
+		throw new Error(`${folder} holds markdown-ls ${bundled}, but package.json pins ${coordinates.version}. ${FETCH}`);
+	}
+
+	const location = distributionLocation(repository, coordinates);
+	let distribution: Buffer;
+	try {
+		distribution = await read(location);
+	} catch (error) {
+		const reason = error instanceof Error ? error.message : String(error);
+		return `${location} cannot be read (${reason}), so ${folder} was only checked to hold markdown-ls ${bundled}.`;
+	}
+	const expected = new Map((await unpackServer(distribution, coordinates.version)).map((file) => [file.path, file.data]));
+	const present = new Set(await filesIn(folder));
+	const differing: string[] = [];
+	for (const file of new Set([...expected.keys(), ...present])) {
+		const data = expected.get(file);
+		if (data === undefined || !present.has(file) || !data.equals(await readFile(path.join(folder, file)))) {
+			differing.push(file);
+		}
+	}
+	differing.sort();
+	if (differing.length > 0) {
+		const files = differing.length === 1 ? '1 file' : `${differing.length} files`;
+		throw new Error(`${folder} differs from ${location} in ${files}: ${differing.join(', ')}. ${FETCH}`);
+	}
+	return undefined;
+}
+
+/** The files below a folder, by their paths relative to it with `/` between the names. */
+async function filesIn(folder: string): Promise<string[]> {
+	const entries = await readdir(folder, { recursive: true, withFileTypes: true });
+	return entries
+		.filter((entry) => entry.isFile())
+		.map((entry) => path.relative(folder, path.join(entry.parentPath, entry.name)).split(path.sep).join('/'));
 }
