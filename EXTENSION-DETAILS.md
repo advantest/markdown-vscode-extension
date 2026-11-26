@@ -88,6 +88,15 @@ preview, and PlantUML diagrams are drawn light or dark with it. The preview chan
 when you change the setting or the theme; when it turns light or dark, it renders the document again
 for the diagrams and says so over its content.
 
+Two things a dark preview does not adapt; where they get hard to read, the light colour scheme shows them as
+intended:
+
+- Images of the document stay as they are. One with a transparent background drawn for a light page, e.g. a logo
+  with black lettering or an SVG with dark lines, can be hard to make out on a dark page.
+- PlantUML diagrams are drawn in PlantUML's own dark mode, which only changes the default colours. Colours a
+  diagram or a library sets itself, e.g. the light fills of the Archimate library, stay, while the text turns light,
+  so it may end up light on a light background.
+
 ### Navigation in the preview and in the sources
 
 - **Right-click in the editor and choose Show in Preview** to jump from a position in the source to the
