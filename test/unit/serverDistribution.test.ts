@@ -4,18 +4,20 @@
  */
 
 import * as assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import * as path from 'node:path';
 import { ZipFile } from 'yazl';
 import {
+	checkBundledServer,
 	distributionLocation,
 	load,
 	manifestAttribute,
 	readCoordinates,
 	readZip,
+	repositoryOf,
 	unpackServer,
 } from '../../scripts/serverDistribution';
 
@@ -139,28 +141,6 @@ describe('manifestAttribute', () => {
 });
 
 describe('unpackServer', () => {
-	const jar = (version: string | undefined) =>
-		zip({
-			'META-INF/MANIFEST.MF': `Manifest-Version: 1.0\r\n${version ? `Implementation-Version: ${version}\r\n` : ''}`,
-		});
-	const distribution = async (version: string | undefined) =>
-		zip({
-			'markdown-ls-1.2.3/': '',
-			'markdown-ls-1.2.3/bin/markdown-ls': 'script',
-			'markdown-ls-1.2.3/README.md': 'readme',
-			'markdown-ls-1.2.3/lib/': '',
-			'markdown-ls-1.2.3/lib/one.jar': 'one',
-			'markdown-ls-1.2.3/lib/two.jar': 'two',
-			'markdown-ls-1.2.3/markdown-ls.jar': await jar(version),
-			'markdown-ls-1.2.3/LICENSE': 'licence',
-			'markdown-ls-1.2.3/THIRD-PARTY.txt': 'list',
-			'markdown-ls-1.2.3/bom.json': '{}',
-			'markdown-ls-1.2.3/licenses/': '',
-			'markdown-ls-1.2.3/licenses/apache.txt': 'apache',
-			'markdown-ls-1.2.3/notices/one-jar/NOTICE': 'notice',
-			'markdown-ls-1.2.3/sources/one-sources.jar': 'source',
-		});
-
 	it('takes the JAR, its libraries and their licences, without the folder of the distribution', async () => {
 		const files = await unpackServer(await distribution('1.2.3'), '1.2.3');
 
@@ -190,6 +170,106 @@ describe('unpackServer', () => {
 		await assert.rejects(unpackServer(await zip({ 'x/lib/one.jar': 'one' }), '1.2.3'), /no markdown-ls\.jar/);
 	});
 });
+
+describe('repositoryOf', () => {
+	it('takes the Maven repository MARKDOWN_LS_REPOSITORY names, by default the local one', () => {
+		assert.equal(repositoryOf({ MARKDOWN_LS_REPOSITORY: ' https://repo.example.org/maven2 ' }), 'https://repo.example.org/maven2');
+		assert.equal(repositoryOf({ MARKDOWN_LS_REPOSITORY: ' ' }), path.join(homedir(), '.m2', 'repository'));
+		assert.equal(repositoryOf({}), path.join(homedir(), '.m2', 'repository'));
+	});
+});
+
+describe('checkBundledServer', () => {
+	const REPOSITORY = path.join('home', '.m2', 'repository');
+	let directory: string;
+	let server: string;
+	let archive: Buffer;
+	const fromRepository = async (location: string) => {
+		assert.equal(location, distributionLocation(REPOSITORY, COORDINATES));
+		return archive;
+	};
+	const check = () => checkBundledServer(server, COORDINATES, REPOSITORY, fromRepository);
+
+	beforeEach(async () => {
+		directory = await mkdtemp(path.join(tmpdir(), 'markdown-support-check-'));
+		server = path.join(directory, 'server');
+		archive = await distribution('1.2.3');
+		for (const file of await unpackServer(archive, '1.2.3')) {
+			await mkdir(path.dirname(path.join(server, file.path)), { recursive: true });
+			await writeFile(path.join(server, file.path), file.data);
+		}
+	});
+
+	afterEach(async () => {
+		await rm(directory, { recursive: true, force: true });
+	});
+
+	it('passes a server unpacked from the distribution in the Maven repository', async () => {
+		assert.equal(await check(), undefined);
+	});
+
+	it('fails without a server', async () => {
+		await rm(server, { recursive: true });
+
+		await assert.rejects(check(), /holds no markdown-ls\.jar\. Run "npm run fetch-server"/);
+	});
+
+	it('fails on a server of another version than the one pinned', async () => {
+		await writeFile(path.join(server, 'markdown-ls.jar'), await jar('1.2.4'));
+
+		await assert.rejects(check(), /holds markdown-ls 1\.2\.4, but package\.json pins 1\.2\.3\. Run "npm run fetch-server"/);
+	});
+
+	it('fails on a JAR whose version cannot be read', async () => {
+		await writeFile(path.join(server, 'markdown-ls.jar'), 'no archive');
+
+		await assert.rejects(check(), /markdown-ls\.jar: not a ZIP archive.*Run "npm run fetch-server"/);
+	});
+
+	it('fails on a server that differs from the distribution, naming the files', async () => {
+		await writeFile(path.join(server, 'lib', 'one.jar'), 'changed');
+		await assert.rejects(check(), /in 1 file: lib\/one\.jar\./);
+
+		await rm(path.join(server, 'licenses', 'apache.txt'));
+		await writeFile(path.join(server, 'lib', 'old.jar'), 'old');
+
+		await assert.rejects(
+			check(),
+			/differs from .*markdown-ls-1\.2\.3-distribution\.zip in 3 files: lib\/old\.jar, lib\/one\.jar, licenses\/apache\.txt\. Run "npm run fetch-server"/,
+		);
+	});
+
+	it('only warns if the distribution cannot be read, having checked the version', async () => {
+		const warning = await checkBundledServer(server, COORDINATES, REPOSITORY, async () => {
+			throw new Error('ENOENT');
+		});
+
+		assert.match(warning ?? '', /markdown-ls-1\.2\.3-distribution\.zip cannot be read \(ENOENT\).*markdown-ls 1\.2\.3/);
+	});
+});
+
+const jar = (version: string | undefined) =>
+	zip({
+		'META-INF/MANIFEST.MF': `Manifest-Version: 1.0\r\n${version ? `Implementation-Version: ${version}\r\n` : ''}`,
+	});
+
+const distribution = async (version: string | undefined) =>
+	zip({
+		'markdown-ls-1.2.3/': '',
+		'markdown-ls-1.2.3/bin/markdown-ls': 'script',
+		'markdown-ls-1.2.3/README.md': 'readme',
+		'markdown-ls-1.2.3/lib/': '',
+		'markdown-ls-1.2.3/lib/one.jar': 'one',
+		'markdown-ls-1.2.3/lib/two.jar': 'two',
+		'markdown-ls-1.2.3/markdown-ls.jar': await jar(version),
+		'markdown-ls-1.2.3/LICENSE': 'licence',
+		'markdown-ls-1.2.3/THIRD-PARTY.txt': 'list',
+		'markdown-ls-1.2.3/bom.json': '{}',
+		'markdown-ls-1.2.3/licenses/': '',
+		'markdown-ls-1.2.3/licenses/apache.txt': 'apache',
+		'markdown-ls-1.2.3/notices/one-jar/NOTICE': 'notice',
+		'markdown-ls-1.2.3/sources/one-sources.jar': 'source',
+	});
 
 /** Builds a ZIP archive with yazl, the first entries stored, the second ones deflated; a name ending in `/` is a folder. */
 async function zip(
